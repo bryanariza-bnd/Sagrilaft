@@ -33,7 +33,7 @@ from services.formulario.serializacion import (
 )
 from services.formulario.validacion_envio import ValidadorEnvioFormulario
 from services.formulario.documento_service import DocumentoService
-from services.formulario.exportacion_pdf import ExportadorFormularioPdf
+from services.formulario.exportacion_pdf import ArchivoPdfGenerado, ExportadorFormularioPdf
 from services.formulario.almacenamiento_contraparte import (
     resolver_ruta_contraparte,
     crear_carpeta_contraparte,
@@ -116,7 +116,9 @@ class FormularioService:
         )
         crear_carpeta_contraparte(ruta_contraparte)
         self._documentos.mover_archivos_formulario_a_contraparte(formulario.id, ruta_contraparte)
-        self._exportador_pdf.generar_y_guardar_pdf(formulario, ruta_contraparte)
+
+        pdf = self._exportador_pdf.generar_y_guardar_pdf(formulario, ruta_contraparte)
+        self._registrar_pdf_oficial(formulario.id, pdf)
 
         formulario.estado = EstadoFormulario.ENVIADO.value
         self._sesion.commit()
@@ -213,3 +215,13 @@ class FormularioService:
         """Variante de dominio (sin HTTPException). Usada por el flujo /enviar."""
         if not es_estado_borrador(formulario.estado):
             raise FormularioNoEditableError(mensaje_error)
+
+    def _registrar_pdf_oficial(self, formulario_id: str, pdf: ArchivoPdfGenerado) -> None:
+        self._documentos.registrar_documento_en_bd(
+            formulario_id=formulario_id,
+            tipo_documento="FORMULARIO_PDF",
+            nombre_archivo=pdf.nombre_archivo,
+            ruta_archivo=pdf.ruta_archivo,
+            content_type="application/pdf",
+            tamano=pdf.ruta_archivo.stat().st_size,
+        )
