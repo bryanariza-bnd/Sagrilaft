@@ -28,7 +28,7 @@ from domain.excepciones import (
     TokenDiligenciamientoInvalidoError,
 )
 from infrastructure.ensamblaje import crear_orquestador_validacion, crear_servicio_listas_cautela
-from api.routers import acceso_manual, formulario, listas_cautela, validacion
+from api.routers import acceso_manual, expedientes, formulario, listas_cautela, validacion
 from services.formulario.exportacion_pdf import DependenciaPdfNoInstaladaError
 
 
@@ -71,6 +71,7 @@ def _registrar_rutas(app: FastAPI) -> None:
     app.include_router(validacion.enrutador)
     app.include_router(listas_cautela.enrutador)
     app.include_router(acceso_manual.enrutador)
+    app.include_router(expedientes.enrutador)
 
 
 def _registrar_manejadores_excepcion(app: FastAPI) -> None:

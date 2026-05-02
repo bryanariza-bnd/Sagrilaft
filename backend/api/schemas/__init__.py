@@ -29,6 +29,7 @@ from .formularios import (
     ReferenciaComercial,
     ResultadoValidacionEnvio,
 )
+from .expedientes import ExpedienteDetalle, ExpedienteResumen
 from .listas_cautela import BusquedaListaCautela, RespuestaListaCautela, ResultadoListaCautela
 from .validaciones import ValidacionResponse
 
@@ -57,6 +58,9 @@ __all__ = [
     "ReferenciaBancaria",
     "ReferenciaComercial",
     "ResultadoValidacionEnvio",
+    # Expedientes
+    "ExpedienteDetalle",
+    "ExpedienteResumen",
     # Listas de cautela
     "BusquedaListaCautela",
     "RespuestaListaCautela",
