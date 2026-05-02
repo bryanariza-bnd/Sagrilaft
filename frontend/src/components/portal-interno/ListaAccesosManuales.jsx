@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../services/api';
 import BadgeEstadoAcceso from './BadgeEstadoAcceso';
+import { estilosBandeja } from './ui/listaStyles';
 import {
   ESTADOS_ACCESO,
   TIPOS_CONTRAPARTE,
@@ -8,6 +9,7 @@ import {
   ETIQUETA_TIPO_CONTRAPARTE,
   ETIQUETA_AREA_RESPONSABLE,
   formatearFechaCorta,
+  generarTextoConteo,
 } from './constantes';
 
 // ── Constantes de filtrado ────────────────────────────────────────────────────
@@ -48,60 +50,21 @@ function formatearEtiquetaFechaLimite(acceso) {
   }
 }
 
-function textoConteoAccesos(filtrados, total) {
-  if (filtrados === total) {
-    const plural = total !== 1;
-    return `${total} acceso${plural ? 's' : ''} creado${plural ? 's' : ''}`;
-  }
-  return `${filtrados} de ${total} acceso${total !== 1 ? 's' : ''}`;
-}
-
 // ── Estilos ───────────────────────────────────────────────────────────────────
 
 const s = {
-  contenedor: {
-    display:       'flex',
-    flexDirection: 'column',
-    gap:           '12px',
-  },
-  encabezado: {
-    display:        'flex',
-    justifyContent: 'space-between',
-    alignItems:     'center',
-    marginBottom:   '4px',
-  },
+  ...estilosBandeja,
   titulo: {
     fontSize:   '0.9rem',
     fontWeight: '600',
     color:      'var(--gray-700, #334155)',
     margin:     0,
   },
-  btnActualizar: {
-    padding:      '6px 14px',
-    background:   'transparent',
-    color:        'var(--primary-600, #2563eb)',
-    border:       '1.5px solid var(--primary-200, #bfdbfe)',
-    borderRadius: 'var(--radius-sm, 6px)',
-    fontSize:     '0.8rem',
-    fontWeight:   '600',
-    cursor:       'pointer',
-  },
   barraFiltros: {
-    display:    'flex',
-    gap:        '8px',
-    flexWrap:   'wrap',
-    alignItems: 'center',
+    ...estilosBandeja.barraFiltros,
     paddingBottom: '4px',
   },
-  selectFiltro: {
-    padding:      '6px 10px',
-    border:       '1.5px solid var(--gray-200, #e2e8f0)',
-    borderRadius: 'var(--radius-sm, 6px)',
-    fontSize:     '0.8rem',
-    color:        'var(--gray-700, #334155)',
-    background:   '#fff',
-    cursor:       'pointer',
-  },
+  selectFiltro: estilosBandeja.selectFiltro,
   btnLimpiarFiltros: {
     padding:      '6px 12px',
     background:   'transparent',
@@ -170,27 +133,9 @@ const s = {
     color:      estado === 'expirado' ? '#dc2626' : 'var(--gray-500, #64748b)',
     whiteSpace: 'nowrap',
   }),
-  estadoVacio: {
-    textAlign: 'center',
-    padding:   '48px 0',
-    color:     'var(--gray-400, #94a3b8)',
-    fontSize:  '0.9rem',
-  },
-  spinner: {
-    textAlign: 'center',
-    padding:   '48px 0',
-    color:     'var(--gray-400, #94a3b8)',
-    fontSize:  '0.88rem',
-  },
-  errorCarga: {
-    background:   '#fef2f2',
-    border:       '1px solid #fca5a5',
-    borderRadius: 'var(--radius-md, 8px)',
-    padding:      '12px 16px',
-    fontSize:     '0.85rem',
-    color:        '#991b1b',
-    textAlign:    'center',
-  },
+  estadoVacio: estilosBandeja.estadoVacio,
+  spinner: estilosBandeja.spinner,
+  errorCarga: estilosBandeja.errorCarga,
 };
 
 // ── Sub-componente: barra de filtros ──────────────────────────────────────────
@@ -312,7 +257,7 @@ export default function ListaAccesosManuales({ mensajeVacio = MENSAJE_VACIO_DEFA
     <div style={s.contenedor}>
       <div style={s.encabezado}>
         <p style={s.titulo}>
-          {!cargando && textoConteoAccesos(accesosFiltrados.length, accesosManuales.length)}
+          {!cargando && generarTextoConteo(accesosFiltrados.length, accesosManuales.length, 'acceso', 'creado')}
         </p>
         <button style={s.btnActualizar} onClick={cargarAccesos} disabled={cargando} type="button">
           {cargando ? 'Cargando…' : 'Actualizar'}

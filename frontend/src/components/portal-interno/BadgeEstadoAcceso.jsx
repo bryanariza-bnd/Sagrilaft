@@ -5,44 +5,28 @@
  *   estado {string} "activo" | "consumido" | "expirado"
  */
 
-const CONFIGURACION_POR_ESTADO = {
-  activo: {
-    etiqueta: 'Activo',
-    fondo:    '#dcfce7',
-    texto:    '#15803d',
-    borde:    '#86efac',
-  },
-  consumido: {
-    etiqueta: 'Consumido',
-    fondo:    '#dbeafe',
-    texto:    '#1d4ed8',
-    borde:    '#93c5fd',
-  },
-  expirado: {
-    etiqueta: 'Expirado',
-    fondo:    '#fee2e2',
-    texto:    '#dc2626',
-    borde:    '#fca5a5',
-  },
-};
+import { ETIQUETA_ESTADO_ACCESO, ESTILO_ESTADO_ACCESO } from './constantes';
 
-const estiloBadge = (config) => ({
+const _FALLBACK_ESTILO = ESTILO_ESTADO_ACCESO.expirado;
+
+const estiloBadge = ({ bg, color, borde }) => ({
   display:       'inline-block',
   padding:       '3px 10px',
   borderRadius:  '999px',
   fontSize:      '0.72rem',
   fontWeight:    '700',
   letterSpacing: '0.04em',
-  background:    config.fondo,
-  color:         config.texto,
-  border:        `1px solid ${config.borde}`,
+  background:    bg,
+  color,
+  border:        `1px solid ${borde}`,
   whiteSpace:    'nowrap',
 });
 
 export default function BadgeEstadoAcceso({ estado }) {
-  if (process.env.NODE_ENV !== 'production' && !CONFIGURACION_POR_ESTADO[estado]) {
+  if (process.env.NODE_ENV !== 'production' && !ESTILO_ESTADO_ACCESO[estado]) {
     console.warn(`BadgeEstadoAcceso: estado desconocido "${estado}". Valores válidos: activo, consumido, expirado.`);
   }
-  const config = CONFIGURACION_POR_ESTADO[estado] ?? CONFIGURACION_POR_ESTADO.expirado;
-  return <span style={estiloBadge(config)}>{config.etiqueta}</span>;
+  const estilo   = ESTILO_ESTADO_ACCESO[estado]   ?? _FALLBACK_ESTILO;
+  const etiqueta = ETIQUETA_ESTADO_ACCESO[estado] ?? estado;
+  return <span style={estiloBadge(estilo)}>{etiqueta}</span>;
 }
