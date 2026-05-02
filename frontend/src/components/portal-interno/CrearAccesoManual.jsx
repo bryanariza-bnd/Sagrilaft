@@ -18,6 +18,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { api } from '../../services/api';
 import ListaAccesosManuales from './ListaAccesosManuales';
+import VistaExpedientes from './VistaExpedientes';
 import {
   TIPOS_CONTRAPARTE,
   AREAS_RESPONSABLES,
@@ -46,6 +47,10 @@ const TEXTOS_VISTA = {
   listar: {
     titulo:    'Accesos creados',
     subtitulo: 'Consulte el estado de todos los accesos manuales generados.',
+  },
+  expedientes: {
+    titulo:    'Formularios recibidos',
+    subtitulo: 'Consulte los formularios enviados por clientes y proveedores, con sus documentos adjuntos.',
   },
 };
 
@@ -339,6 +344,13 @@ function EncabezadoConTabs({ vistaEfectiva, onCambiarVista }) {
         >
           Ver accesos
         </button>
+        <button
+          style={s.tab(vistaEfectiva === 'expedientes')}
+          onClick={() => onCambiarVista('expedientes')}
+          type="button"
+        >
+          Formularios
+        </button>
       </div>
     </>
   );
@@ -412,6 +424,18 @@ export default function CrearAccesoManual() {
     ...(focusField === campo ? s.inputFocus : {}),
     ...(erroresCampo[campo] ? s.inputError : {}),
   });
+
+  // ── Vista: formularios recibidos ──────────────────────────────────────────
+  if (vistaEfectiva === 'expedientes') {
+    return (
+      <div style={s.pagina}>
+        <div style={s.contenedor}>
+          <EncabezadoConTabs vistaEfectiva={vistaEfectiva} onCambiarVista={handleCambiarVista} />
+          <VistaExpedientes />
+        </div>
+      </div>
+    );
+  }
 
   // ── Vista: listado ────────────────────────────────────────────────────────
   if (vistaEfectiva === 'listar') {
