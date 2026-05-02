@@ -1,31 +1,71 @@
 const API_BASE = '/api';
 
+async function leerDetalleError(res) {
+  const contentType = res.headers.get('content-type') ?? '';
+
+  const leerComoJson = async () => {
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      return data.detail ?? JSON.stringify(data);
+    }
+    return String(data ?? '');
+  };
+
+  const leerComoTexto = async () => {
+    const texto = await res.text();
+    if (!texto) return '';
+    try {
+      const data = JSON.parse(texto);
+      return data?.detail ?? texto;
+    } catch {
+      return texto;
+    }
+  };
+
+  try {
+    if (contentType.includes('application/json')) return await leerComoJson();
+    const texto = await leerComoTexto();
+    return texto || res.statusText || `HTTP ${res.status}`;
+  } catch {
+    return res.statusText || `HTTP ${res.status}`;
+  }
+}
+
+async function requestJson(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, options);
+  if (!res.ok) {
+    const err = new Error(await leerDetalleError(res));
+    err.status = res.status;
+    throw err;
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
 export const api = {
   // Formularios
   async crearFormulario(data = {}) {
-    const res = await fetch(`${API_BASE}/formularios/`, {
+    return requestJson('/formularios/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   async obtenerFormulario(codigo) {
-    const res = await fetch(`${API_BASE}/formularios/${codigo}`);
-    if (!res.ok) throw new Error('Formulario no encontrado');
-    return res.json();
+    try {
+      return await requestJson(`/formularios/${codigo}`);
+    } catch {
+      throw new Error('Formulario no encontrado');
+    }
   },
 
   async actualizarFormulario(id, data) {
-    const res = await fetch(`${API_BASE}/formularios/${id}`, {
+    return requestJson(`/formularios/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   async enviarFormulario(id, credenciales = null) {
@@ -34,13 +74,7 @@ export const api = {
       opciones.headers = { 'Content-Type': 'application/json' };
       opciones.body = JSON.stringify(credenciales);
     }
-    const res = await fetch(`${API_BASE}/formularios/${id}/enviar`, opciones);
-    if (!res.ok) {
-      const err = new Error(await res.text());
-      err.status = res.status;
-      throw err;
-    }
-    const resultado = await res.json();
+    const resultado = await requestJson(`/formularios/${id}/enviar`, opciones);
     if (!resultado.valido) {
       const detalle = resultado.errores?.map(e => e.mensaje).join('\n') ?? 'El formulario no pudo enviarse';
       throw new Error(detalle);
@@ -54,40 +88,32 @@ export const api = {
     formData.append('tipo_documento', tipoDocumento);
     formData.append('archivo', archivo);
 
-    const res = await fetch(`${API_BASE}/formularios/${formularioId}/documentos`, {
+    return requestJson(`/formularios/${formularioId}/documentos`, {
       method: 'POST',
       body: formData,
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   async eliminarDocumento(formularioId, docId) {
-    const res = await fetch(`${API_BASE}/formularios/${formularioId}/documentos/${docId}`, {
+    return requestJson(`/formularios/${formularioId}/documentos/${docId}`, {
       method: 'DELETE',
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   // Validación
   async validarFormulario(id) {
-    const res = await fetch(`${API_BASE}/validar/${id}`, {
+    return requestJson(`/validar/${id}`, {
       method: 'POST',
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   // Listas de cautela
   async buscarListasCautela(nombre, numeroIdentificacion = null) {
-    const res = await fetch(`${API_BASE}/listas-cautela/buscar`, {
+    return requestJson('/listas-cautela/buscar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre, numero_identificacion: numeroIdentificacion }),
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   // Recuperación de sesión por acceso manual (código de petición + PIN)
@@ -112,7 +138,7 @@ export const api = {
       err.code = 'ACCESO_EXPIRADO';
       throw err;
     }
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) throw new Error(await leerDetalleError(res));
     return res.json();
   },
 
@@ -129,41 +155,50 @@ export const api = {
       err.code = 'ACCESO_EXPIRADO';
       throw err;
     }
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) throw new Error(await leerDetalleError(res));
     return res.json();
   },
 
   // Portal interno — accesos manuales
   async crearAccesoManual(datos) {
-    const res = await fetch(`${API_BASE}/accesos-manuales/`, {
+    return requestJson('/accesos-manuales/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(datos),
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   async listarAccesosManuales() {
-    const res = await fetch(`${API_BASE}/accesos-manuales/`);
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    return requestJson('/accesos-manuales/');
+  },
+
+  // Portal interno — expedientes (formularios enviados)
+  async listarExpedientes(tipo = null, busqueda = null, opcionesFetch = null) {
+    const params = new URLSearchParams();
+    if (tipo)     params.append('tipo_contraparte', tipo);
+    if (busqueda) params.append('busqueda', busqueda);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return requestJson(`/expedientes/${query}`, opcionesFetch ?? undefined);
+  },
+
+  async obtenerExpediente(formularioId) {
+    return requestJson(`/expedientes/${formularioId}`);
+  },
+
+  urlDescargaDocumento(formularioId, docId) {
+    return `${API_BASE}/expedientes/${formularioId}/documentos/${docId}/descargar`;
   },
 
   // Pre-llenado IA
   async prefillDocumento(formularioId, docId) {
-    const res = await fetch(`${API_BASE}/formularios/${formularioId}/documentos/${docId}/prefill`, {
+    return requestJson(`/formularios/${formularioId}/documentos/${docId}/prefill`, {
       method: 'POST',
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 
   async prefillAll(formularioId) {
-    const res = await fetch(`${API_BASE}/formularios/${formularioId}/prefill-all`, {
+    return requestJson(`/formularios/${formularioId}/prefill-all`, {
       method: 'POST',
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
   },
 };
