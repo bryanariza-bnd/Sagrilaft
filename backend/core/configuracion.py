@@ -11,6 +11,40 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @dataclass(frozen=True)
+class ZohoSignConfig:
+    """Configuración de ZohoSign para firma electrónica."""
+    client_id:      str = field(default_factory=lambda: os.getenv("ZOHO_CLIENT_ID", ""))
+    client_secret:  str = field(default_factory=lambda: os.getenv("ZOHO_CLIENT_SECRET", ""))
+    refresh_token:  str = field(default_factory=lambda: os.getenv("ZOHO_REFRESH_TOKEN", ""))
+    webhook_secret: str = field(default_factory=lambda: os.getenv("ZOHO_WEBHOOK_SECRET", ""))
+    modo_prueba:    bool = field(
+        default_factory=lambda: os.getenv("ZOHO_SIGN_TESTING", "false").lower() == "true"
+    )
+
+    def validar(self) -> None:
+        """Lanza RuntimeError si las credenciales OAuth de ZohoSign no están configuradas.
+
+        webhook_secret se omite: se valida en FirmaService al recibir el webhook,
+        ya que puede estar ausente en entornos sin URL pública.
+        """
+        _REQUERIDAS = {
+            "client_id":     "ZOHO_CLIENT_ID",
+            "client_secret": "ZOHO_CLIENT_SECRET",
+            "refresh_token": "ZOHO_REFRESH_TOKEN",
+        }
+        faltantes = [
+            var_env
+            for campo, var_env in _REQUERIDAS.items()
+            if not getattr(self, campo)
+        ]
+        if faltantes:
+            raise RuntimeError(
+                f"Configuración ZohoSign incompleta. "
+                f"Variables de entorno faltantes: {', '.join(faltantes)}"
+            )
+
+
+@dataclass(frozen=True)
 class AWSConfig:
     """Configuración de AWS Bedrock."""
     region: str = field(default_factory=lambda: os.getenv("AWS_REGION", "us-east-1"))
@@ -49,18 +83,15 @@ class AppConfig:
         ]
     )
     aws: AWSConfig = field(default_factory=AWSConfig)
+    zoho_sign: ZohoSignConfig = field(default_factory=ZohoSignConfig)
 
 
 def load_config() -> AppConfig:
     """Carga la configuración desde variables de entorno."""
-    # Intentar cargar .env si existe
-    env_path = BASE_DIR / ".env"
-    if env_path.exists():
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, _, value = line.partition("=")
-                    os.environ.setdefault(key.strip(), value.strip())
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(BASE_DIR / ".env", override=False)
+    except ImportError:
+        pass  # python-dotenv opcional; en producción las vars vienen del entorno del SO
 
     return AppConfig()
