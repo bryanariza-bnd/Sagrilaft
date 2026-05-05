@@ -1,4 +1,5 @@
 import FormField from '../FormField';
+import { RAZON_SOCIAL_EMPRESA, CORREO_DATOS_PERSONALES } from '../../config/textos-legales';
 
 const HR = () => (
   <hr style={{ border: 'none', borderTop: '1px solid var(--gray-200)', margin: '24px 0' }} />
@@ -19,10 +20,14 @@ export default function PasoDeclaraciones({ formData, onChange, onOpenHelp, erro
       {/* Autorización tratamiento de datos */}
       <div className="auth-box">
         <p>
-          En cumplimiento de la Ley Estatutaria 1581 de 2012 de Protección de Datos (LEPD), del Decreto 1377 de 2013 y de las medidas de seguridad definidas en la política de tratamiento desarrollada por HIGHTECH SOFTWARE CONTABLE SAS l a las cuales
-          puede tener acceso a través del correo electrónico: info@xxxxxl.com.co. Mediante el registro de sus datos personales en el presente formulario usted autoriza a HIGHTECH SOFTWARE CONTABLE SAS para la recolección, almacenamiento y uso de los
-          mismos con la finalidad de llevar a cabo el procedimiento de conocimiento del cliente/proveedor de la empresa. Usted, como titular de sus datos personales puede ejercer sus derechos de acceso, corrección, supresión o revocación mediante un escrito
-          dirigido a HIGHTECH SOFTWARE CONTABLE SAS, mediante correo electrónico a info@tXXXXXX indicando en el asunto el derecho que desea ejercitar
+          En cumplimiento de la Ley Estatutaria 1581 de 2012 de Protección de Datos (LEPD), del Decreto 1377 de 2013 y de las medidas de seguridad definidas en la política de tratamiento desarrollada
+          por {RAZON_SOCIAL_EMPRESA}, a las cuales puede tener acceso a través del correo
+          electrónico: {CORREO_DATOS_PERSONALES}. Mediante el registro de sus datos personales en el presente formulario usted
+          autoriza a {RAZON_SOCIAL_EMPRESA} para la recolección, almacenamiento y uso de los mismos con la finalidad de llevar
+          a cabo el procedimiento de conocimiento del cliente/proveedor de la empresa. Usted, como titular de sus datos
+          personales puede ejercer sus derechos de acceso, corrección, supresión o revocación mediante un escrito dirigido
+          a {RAZON_SOCIAL_EMPRESA}, mediante correo electrónico a {CORREO_DATOS_PERSONALES} indicando en el asunto el derecho
+          que desea ejercitar.
         </p>
       </div>
       <div className="checkbox-field" onClick={() => toggleCheckbox('autorizacion_datos')}>
@@ -78,21 +83,21 @@ export default function PasoDeclaraciones({ formData, onChange, onOpenHelp, erro
       </h3>
       <div className="form-row">
         <FormField
+          label="Nombre del Representante Legal" name="nombre_firma"
+          value={formData.nombre_firma} onChange={onChange}
+          onOpenHelp={onOpenHelp} error={errors.nombre_firma}
+        />
+        <FormField
           label="Fecha" name="fecha_firma" type="date" required
           value={formData.fecha_firma} onChange={onChange}
           onOpenHelp={onOpenHelp} error={errors.fecha_firma}
         />
+      </div>
+      <div className="form-row">
         <FormField
           label="Ciudad" name="ciudad_firma" required
           value={formData.ciudad_firma} onChange={onChange}
           onOpenHelp={onOpenHelp} error={errors.ciudad_firma}
-        />
-      </div>
-      <div className="form-row single">
-        <FormField
-          label="Nombre del Representante Legal" name="nombre_firma" required
-          value={formData.nombre_firma} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.nombre_firma}
         />
       </div>
     </div>
