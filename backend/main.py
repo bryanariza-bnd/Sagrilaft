@@ -21,15 +21,18 @@ from domain.excepciones import (
     ContraparteInvalidaError,
     CredencialesAccesoInvalidasError,
     DocumentoNoEncontradoError,
+    FirmaNoDisponibleError,
     FormularioNoEditableError,
     FormularioNoEncontradoError,
     FormularioYaEnviadoError,
     TokenConsumidoError,
     TokenDiligenciamientoInvalidoError,
+    WebhookTokenInvalidoError,
 )
 from infrastructure.ensamblaje import crear_orquestador_validacion, crear_servicio_listas_cautela
-from api.routers import acceso_manual, expedientes, formulario, listas_cautela, validacion
+from api.routers import acceso_manual, expedientes, formulario, listas_cautela, validacion, webhooks
 from services.formulario.exportacion_pdf import DependenciaPdfNoInstaladaError
+from services.zoho_sign.zoho_sign_service import ZohoSignService
 
 
 logging.basicConfig(level=logging.INFO)
@@ -57,9 +60,12 @@ async def lifespan(app: FastAPI):
     """Ciclo de vida: inicialización y limpieza de la aplicación."""
     config = load_config()
 
-    app.state.orchestrator = crear_orquestador_validacion(config)
-    app.state.config = config
+    config.zoho_sign.validar()
+
+    app.state.orchestrator            = crear_orquestador_validacion(config)
+    app.state.config                  = config
     app.state.servicio_listas_cautela = crear_servicio_listas_cautela()
+    app.state.zoho_sign               = ZohoSignService(config.zoho_sign)
 
     logger.info("SAGRILAFT API iniciada")
     yield
@@ -72,6 +78,7 @@ def _registrar_rutas(app: FastAPI) -> None:
     app.include_router(listas_cautela.enrutador)
     app.include_router(acceso_manual.enrutador)
     app.include_router(expedientes.enrutador)
+    app.include_router(webhooks.enrutador)
 
 
 def _registrar_manejadores_excepcion(app: FastAPI) -> None:
@@ -101,11 +108,12 @@ def _registrar_manejadores_excepcion(app: FastAPI) -> None:
     )
     app.add_exception_handler(ContraparteInvalidaError, handler_from_exception(422))
     app.add_exception_handler(DocumentoNoEncontradoError, handler(404, "Documento no encontrado"))
+    app.add_exception_handler(FirmaNoDisponibleError, handler(404, "Documento firmado no disponible"))
     app.add_exception_handler(CredencialesAccesoInvalidasError, handler_from_exception(401))
     app.add_exception_handler(TokenDiligenciamientoInvalidoError, handler_from_exception(404))
     app.add_exception_handler(TokenConsumidoError,                handler_from_exception(410))
     app.add_exception_handler(AccesoExpiradoError,                handler_from_exception(410))
-    app.add_exception_handler(PermissionError, handler_from_exception(500))
+    app.add_exception_handler(WebhookTokenInvalidoError,          handler(403, "Token de webhook inválido"))
     app.add_exception_handler(
         DependenciaPdfNoInstaladaError,
         handler_from_exception_with_hint(
