@@ -1,0 +1,314 @@
+"""
+ZohoSignService — cliente HTTP para la API de ZohoSign (datacenter US).
+
+Responsabilidades:
+  - Gestionar el ciclo de vida del access token (refresco automático con caché).
+  - Crear solicitudes de firma enviando el PDF del formulario.
+  - Descargar el PDF firmado una vez completada la firma.
+
+Referencia API: https://www.zoho.com/sign/api/
+"""
+
+import json
+import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import httpx
+
+from core.configuracion import ZohoSignConfig
+
+logger = logging.getLogger(__name__)
+
+_TOKEN_URL = "https://accounts.zoho.com/oauth/v2/token"
+_API_BASE  = "https://sign.zoho.com/api/v1"
+
+# Margen de 5 minutos antes de que el token expire para forzar refresco anticipado
+_MARGEN_REFRESCO_SEGUNDOS = 300
+
+
+@dataclass
+class SolicitudFirmaCreada:
+    request_id: str
+
+
+class ZohoSignService:
+    """Cliente síncrono para ZohoSign. Una instancia por request es segura."""
+
+    def __init__(self, config: ZohoSignConfig) -> None:
+        self._config = config
+        self._access_token: str | None = None
+        self._token_expiry: datetime = datetime.min.replace(tzinfo=timezone.utc)
+
+    # ─── Token management ─────────────────────────────────────────────────────
+
+    def _obtener_token(self) -> str:
+        """Devuelve un access token válido, refrescándolo si está próximo a expirar."""
+        if self._access_token and datetime.now(timezone.utc) < self._token_expiry:
+            return self._access_token
+
+        logger.info("Refrescando access token de ZohoSign")
+        resp = httpx.post(
+            _TOKEN_URL,
+            data={
+                "grant_type":    "refresh_token",
+                "client_id":     self._config.client_id,
+                "client_secret": self._config.client_secret,
+                "refresh_token": self._config.refresh_token,
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        datos = resp.json()
+
+        if "access_token" not in datos:
+            raise RuntimeError(f"ZohoSign no devolvió access_token: {datos}")
+
+        self._access_token = datos["access_token"]
+        expires_in = int(datos.get("expires_in", 3600))
+        self._token_expiry = datetime.now(timezone.utc) + timedelta(seconds=expires_in - _MARGEN_REFRESCO_SEGUNDOS)
+        return self._access_token
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Zoho-oauthtoken {self._obtener_token()}"}
+
+    # ─── Firma ────────────────────────────────────────────────────────────────
+
+    def crear_solicitud_firma(
+        self,
+        pdf_path: Path,
+        nombre_documento: str,
+        correo_firmante: str,
+        nombre_firmante: str,
+    ) -> SolicitudFirmaCreada:
+        """
+        Sube el PDF a ZohoSign y envía la solicitud de firma en dos pasos:
+
+        1. POST /api/v1/requests — sube el PDF y crea el borrador.
+        2. POST /api/v1/requests/{id}/submit — dispara el correo al firmante.
+
+        ZohoSign gestiona la interfaz de firma; el API no soporta placement de
+        campos de firma vía submit (signature_fields no es una clave válida).
+        """
+        # ── Paso 1: crear borrador ────────────────────────────────────────────
+        data_crear = {
+            "requests": {
+                "request_name":   nombre_documento,
+                "expiration_days": 5,
+                "is_sequential":  True,
+                "actions": [
+                    {
+                        "action_type":     "SIGN",
+                        "recipient_email": correo_firmante,
+                        "recipient_name":  nombre_firmante,
+                        "signing_order":   0,
+                    }
+                ],
+            }
+        }
+        # testing=true va como query param (no en el JSON body — ZohoSign devuelve 400 si va adentro)
+        params_crear = {"testing": "true"} if self._config.modo_prueba else {}
+
+        logger.info(
+            "Paso 1/2 ZohoSign — creando borrador para '%s' → %s [modo_prueba=%s]",
+            nombre_documento,
+            correo_firmante,
+            self._config.modo_prueba,
+        )
+
+        with open(pdf_path, "rb") as archivo:
+            resp_crear = httpx.post(
+                f"{_API_BASE}/requests",
+                headers=self._headers(),
+                params=params_crear,
+                data={"data": json.dumps(data_crear)},
+                files={"file": (pdf_path.name, archivo, "application/pdf")},
+                timeout=30,
+            )
+
+        if not resp_crear.is_success:
+            raise RuntimeError(
+                f"ZohoSign rechazó la creación (HTTP {resp_crear.status_code}): "
+                f"{resp_crear.text[:500]}"
+            )
+        datos_crear = resp_crear.json()
+
+        if datos_crear.get("code") != 0:
+            raise RuntimeError(
+                f"ZohoSign rechazó la creación del borrador (code={datos_crear.get('code')}): "
+                f"{datos_crear.get('message', 'sin detalle')}"
+            )
+
+        solicitud   = datos_crear["requests"]
+        request_id  = solicitud["request_id"]
+        action_id   = solicitud["actions"][0]["action_id"]
+        doc_info    = solicitud["document_ids"][0]
+        document_id = doc_info["document_id"]
+        pagina_firma = doc_info["total_pages"] - 1  # 0-indexed; el PDF siempre termina en la página de firma
+
+        logger.info(
+            "Borrador ZohoSign creado: request_id=%s action_id=%s páginas=%s",
+            request_id, action_id, doc_info["total_pages"],
+        )
+
+        # ── Paso 2: colocar campo de firma y enviar ───────────────────────────
+        # Coordenadas en puntos PDF (1pt = 1/72 in). A4 = 595 x 842pt.
+        # @page margin: 18mm=51pt (arriba), 14mm=40pt (lados). Área útil: 515pt.
+        # El campo de firma se ubica dentro del card "Firma" del Paso 8 (última página),
+        # debajo del grid Nombre/Fecha/Ciudad — x/width descontando padding del card (16px=12pt).
+        data_enviar = {
+            "requests": {
+                "actions": [
+                    {
+                        "action_id":   action_id,
+                        "action_type": "SIGN",
+                        "fields": [
+                            {
+                                "field_type_name": "Signature",
+                                "document_id":     document_id,
+                                "action_id":       action_id,
+                                "is_mandatory":    True,
+                                "page_no":         pagina_firma,
+                                "x_coord":         52,   # 40 (margen pág.) + 12 (padding card)
+                                "y_coord":         340,  # dentro del card Firma, bajo el grid
+                                "abs_width":       491,  # 515 − 2×12 (padding card izq+der)
+                                "abs_height":      50,
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+
+        logger.info("Paso 2/2 ZohoSign — enviando a firma: request_id=%s", request_id)
+
+        resp_enviar = httpx.post(
+            f"{_API_BASE}/requests/{request_id}/submit",
+            headers=self._headers(),
+            params=params_crear,
+            data={"data": json.dumps(data_enviar)},
+            timeout=30,
+        )
+
+        if not resp_enviar.is_success:
+            raise RuntimeError(
+                f"ZohoSign rechazó el submit (HTTP {resp_enviar.status_code}): "
+                f"{resp_enviar.text[:500]}"
+            )
+        datos_enviar = resp_enviar.json()
+
+        if datos_enviar.get("code", 0) != 0:
+            raise RuntimeError(
+                f"ZohoSign rechazó el envío a firma (code={datos_enviar.get('code')}): "
+                f"{datos_enviar.get('message', 'sin detalle')}"
+            )
+
+        logger.info(
+            "Solicitud ZohoSign enviada a firma: request_id=%s → %s",
+            request_id, correo_firmante,
+        )
+        return SolicitudFirmaCreada(request_id=request_id)
+
+    # ─── Cancelación ──────────────────────────────────────────────────────────
+
+    def cancelar_solicitud_firma(self, request_id: str) -> None:
+        """
+        Cancela una solicitud de firma pendiente vía recall.
+
+        POST /api/v1/requests/{id}/recall
+        No requiere cuerpo. Después del recall los destinatarios ya no pueden firmar.
+        """
+        resp = httpx.post(
+            f"{_API_BASE}/requests/{request_id}/recall",
+            headers=self._headers(),
+            timeout=15,
+        )
+        resp.raise_for_status()
+        datos = resp.json()
+
+        if datos.get("code") != 0:
+            raise RuntimeError(
+                f"ZohoSign rechazó el recall (code={datos.get('code')}): "
+                f"{datos.get('message', 'sin detalle')}"
+            )
+
+        logger.info("Solicitud ZohoSign cancelada (recall): request_id=%s", request_id)
+
+    # ─── Consulta de estado ───────────────────────────────────────────────────
+
+    def obtener_estado_solicitud(self, request_id: str) -> str:
+        """Devuelve el request_status actual de una solicitud en ZohoSign."""
+        resp = httpx.get(
+            f"{_API_BASE}/requests/{request_id}",
+            headers=self._headers(),
+            timeout=15,
+        )
+        resp.raise_for_status()
+        datos = resp.json()
+
+        if datos.get("code") != 0:
+            raise RuntimeError(
+                f"ZohoSign error al consultar solicitud (code={datos.get('code')}): "
+                f"{datos.get('message', 'sin detalle')}"
+            )
+
+        return (datos.get("requests") or {}).get("request_status", "")
+
+    # ─── Descarga ─────────────────────────────────────────────────────────────
+
+    def descargar_documento_firmado(self, request_id: str, destino: Path) -> Path:
+        """
+        Descarga el documento firmado desde ZohoSign y lo guarda en `destino`.
+
+        Endpoint: GET /api/v1/requests/{id}/pdf?merge=true&with_coc=true
+          - merge=true   → consolida todos los documentos firmados en un solo archivo.
+          - with_coc=true → incluye el certificado de completado (audit trail SAGRILAFT).
+
+        Flujo:
+          1. Verifica que ZohoSign reporta la solicitud como Completed.
+          2. Descarga el archivo y valida el content-type.
+
+        El archivo resultante puede ser:
+          - application/pdf  → un solo documento firmado (caso normal).
+          - application/zip  → múltiples documentos; destino se guarda como .zip.
+        """
+        logger.info("Descargando documento firmado: request_id=%s → %s", request_id, destino)
+
+        estado_zoho = self.obtener_estado_solicitud(request_id)
+        if estado_zoho.lower() != "completed":
+            raise RuntimeError(
+                f"ZohoSign: la solicitud '{request_id}' no está completada "
+                f"(estado actual: '{estado_zoho}'). No se puede descargar el archivo."
+            )
+
+        # Descargar el documento firmado (con certificado de completado)
+        resp_archivo = httpx.get(
+            f"{_API_BASE}/requests/{request_id}/pdf",
+            params={"merge": "true", "with_coc": "true"},
+            headers=self._headers(),
+            timeout=60,
+            follow_redirects=True,
+        )
+        resp_archivo.raise_for_status()
+
+        # Validar content-type: PDF (un doc) o ZIP (múltiples docs)
+        content_type = resp_archivo.headers.get("content-type", "")
+        _TIPOS_VALIDOS = ("application/pdf", "application/zip", "application/octet-stream")
+        if not any(t in content_type for t in _TIPOS_VALIDOS):
+            raise RuntimeError(
+                f"ZohoSign devolvió content-type inesperado: '{content_type}'. "
+                f"Respuesta: {resp_archivo.text[:300]}"
+            )
+
+        # Ajustar extensión si ZohoSign devuelve ZIP (múltiples documentos)
+        ruta_final = destino
+        if "zip" in content_type:
+            ruta_final = destino.with_suffix(".zip")
+            logger.info("Respuesta ZIP (múltiples documentos): guardando como %s", ruta_final)
+
+        ruta_final.parent.mkdir(parents=True, exist_ok=True)
+        ruta_final.write_bytes(resp_archivo.content)
+
+        logger.info("Documento firmado guardado: %s (%d bytes)", ruta_final, len(resp_archivo.content))
+        return ruta_final

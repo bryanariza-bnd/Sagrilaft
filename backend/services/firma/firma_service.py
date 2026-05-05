@@ -1,0 +1,319 @@
+"""
+FirmaService — lógica de negocio para el flujo de firma electrónica vía ZohoSign.
+
+Responsabilidades:
+  - Iniciar el proceso de firma de un formulario validado (VALIDADO → PENDIENTE_FIRMA).
+  - Procesar los webhooks de ZohoSign y actualizar el estado del formulario.
+  - Resolver la ruta del documento firmado para descarga.
+
+Flujo de estados:
+  VALIDADO → [enviar_a_firma] → PENDIENTE_FIRMA → [webhook Completed] → FIRMADO
+                                                 → [webhook Declined]  → VALIDADO
+"""
+
+import hmac
+import logging
+import re
+from pathlib import Path
+
+from sqlalchemy.orm import Session
+
+from domain.constantes import TIPO_DOCUMENTO_FORMULARIO_PDF
+from domain.excepciones import (
+    DocumentoNoEncontradoError,
+    FirmaNoDisponibleError,
+    FormularioNoEditableError,
+    FormularioNoEncontradoError,
+    WebhookTokenInvalidoError,
+)
+from infrastructure.persistencia.models import (
+    AccesoManual,
+    DocumentoAdjunto,
+    EstadoFormulario,
+    Formulario,
+)
+from services.zoho_sign.zoho_sign_service import ZohoSignService
+
+logger = logging.getLogger(__name__)
+
+_NOMBRE_PDF_FIRMADO = "formulario_firmado.pdf"
+
+
+class FirmaService:
+    """
+    Orquesta el flujo de firma electrónica entre el portal y ZohoSign.
+
+    Requiere que el formulario tenga un AccesoManual asociado para obtener
+    el correo del firmante.
+    """
+
+    def __init__(
+        self,
+        sesion: Session,
+        zoho: ZohoSignService,
+        upload_dir: Path,
+        webhook_secret: str,
+    ) -> None:
+        self._sesion        = sesion
+        self._zoho          = zoho
+        self._upload_dir    = upload_dir
+        self._webhook_secret = webhook_secret
+
+    # ─── Helpers internos ─────────────────────────────────────────────────────
+
+    def _obtener_formulario(self, formulario_id: str) -> Formulario:
+        formulario = (
+            self._sesion.query(Formulario)
+            .filter(Formulario.id == formulario_id)
+            .first()
+        )
+        if not formulario:
+            raise FormularioNoEncontradoError(formulario_id)
+        return formulario
+
+    def _obtener_pdf_del_formulario(self, formulario_id: str) -> DocumentoAdjunto:
+        doc = (
+            self._sesion.query(DocumentoAdjunto)
+            .filter(
+                DocumentoAdjunto.formulario_id == formulario_id,
+                DocumentoAdjunto.tipo_documento == TIPO_DOCUMENTO_FORMULARIO_PDF,
+                DocumentoAdjunto.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not doc:
+            raise DocumentoNoEncontradoError(formulario_id, TIPO_DOCUMENTO_FORMULARIO_PDF)
+        return doc
+
+    def _ruta_documento_firmado(self, formulario: Formulario) -> Path:
+        tipo  = formulario.tipo_contraparte or "sin_tipo"
+        razon = re.sub(r"[^\w\s\-]", "_", formulario.razon_social or "sin_razon_social").strip()
+        return self._upload_dir / tipo / razon / formulario.id / _NOMBRE_PDF_FIRMADO
+
+    # ─── Enviar a firma ───────────────────────────────────────────────────────
+
+    def enviar_a_firma(self, formulario_id: str) -> dict:
+        """
+        Inicia el proceso de firma electrónica para un formulario validado.
+
+        1. Verifica que el formulario esté en estado VALIDADO.
+        2. Obtiene el correo del firmante desde el AccesoManual asociado.
+        3. Envía el PDF a ZohoSign y crea la solicitud de firma.
+        4. Actualiza el estado a PENDIENTE_FIRMA y guarda el zoho_request_id.
+
+        Returns:
+            {"request_id": str, "estado": str, "correo_firmante": str}
+        """
+        formulario = self._obtener_formulario(formulario_id)
+
+        if formulario.estado != EstadoFormulario.VALIDADO:
+            raise FormularioNoEditableError(
+                f"El formulario debe estar en estado 'validado' para enviarse a firma "
+                f"(estado actual: '{formulario.estado}')."
+            )
+
+        acceso = (
+            self._sesion.query(AccesoManual)
+            .filter(AccesoManual.formulario_id == formulario_id)
+            .first()
+        )
+        if not acceso:
+            raise FormularioNoEditableError(
+                "No se encontró un acceso manual asociado al formulario. "
+                "No es posible obtener el correo del firmante."
+            )
+
+        pdf_doc  = self._obtener_pdf_del_formulario(formulario_id)
+        pdf_path = Path(pdf_doc.ruta_archivo)
+        if not pdf_path.exists():
+            raise FormularioNoEditableError(
+                f"El archivo PDF no existe en disco: {pdf_path}"
+            )
+
+        nombre_firmante  = formulario.nombre_firma or acceso.razon_social
+        nombre_documento = f"SAGRILAFT — {acceso.razon_social}"
+
+        resultado = self._zoho.crear_solicitud_firma(
+            pdf_path=pdf_path,
+            nombre_documento=nombre_documento,
+            correo_firmante=acceso.correo_destinatario,
+            nombre_firmante=nombre_firmante,
+        )
+
+        formulario.zoho_request_id = resultado.request_id
+        formulario.estado          = EstadoFormulario.PENDIENTE_FIRMA
+        self._sesion.commit()
+
+        logger.info(
+            "Formulario %s enviado a firma. ZohoSign request_id=%s → %s",
+            formulario_id,
+            resultado.request_id,
+            acceso.correo_destinatario,
+        )
+        return {
+            "request_id":     resultado.request_id,
+            "estado":         formulario.estado,
+            "correo_firmante": acceso.correo_destinatario,
+        }
+
+    # ─── Webhook ──────────────────────────────────────────────────────────────
+
+    def procesar_webhook(
+        self,
+        *,
+        secret_token: str,
+        request_id: str,
+        request_status: str,
+    ) -> None:
+        """
+        Procesa una notificación de ZohoSign.
+
+        Valida el secret_token y actualiza el estado del formulario según
+        el resultado de la firma (Completed → FIRMADO, Declined/Expired → VALIDADO).
+
+        Los parámetros llegan ya extraídos del payload HTTP (ver webhooks.py).
+        """
+        if not self._webhook_secret:
+            raise RuntimeError("ZOHO_WEBHOOK_SECRET no está configurado en el servidor.")
+
+        # Comparación en tiempo constante para evitar timing attacks
+        if not hmac.compare_digest(secret_token, self._webhook_secret):
+            logger.warning("Webhook ZohoSign rechazado: secret_token inválido")
+            raise WebhookTokenInvalidoError()
+
+        if not request_id:
+            logger.warning("Webhook ZohoSign sin request_id — ignorado")
+            return
+
+        formulario = (
+            self._sesion.query(Formulario)
+            .filter(Formulario.zoho_request_id == request_id)
+            .first()
+        )
+
+        if not formulario:
+            logger.info("Webhook ZohoSign: request_id=%s no corresponde a ningún formulario", request_id)
+            return
+
+        if request_status == "Completed":
+            self._procesar_firma_completada(formulario, request_id)
+        elif request_status in ("Declined", "Expired"):
+            self._procesar_firma_cancelada(formulario, request_id, request_status)
+        else:
+            logger.info(
+                "Webhook ZohoSign: formulario=%s status='%s' — no requiere acción",
+                formulario.id,
+                request_status,
+            )
+
+    def _procesar_firma_completada(self, formulario: Formulario, request_id: str) -> None:
+        if formulario.estado == EstadoFormulario.FIRMADO:
+            logger.info("Webhook duplicado ignorado: formulario %s ya está FIRMADO", formulario.id)
+            return
+
+        destino_esperado = self._ruta_documento_firmado(formulario)
+
+        # descargar_documento_firmado puede ajustar la extensión a .zip si ZohoSign
+        # devuelve múltiples documentos comprimidos. Usamos la ruta real retornada.
+        ruta_guardada = self._zoho.descargar_documento_firmado(request_id, destino_esperado)
+
+        formulario.ruta_documento_firmado = str(ruta_guardada)
+        formulario.estado                 = EstadoFormulario.FIRMADO
+        self._sesion.commit()
+
+        logger.info("Formulario %s → FIRMADO. Archivo en: %s", formulario.id, ruta_guardada)
+
+    def _procesar_firma_cancelada(
+        self, formulario: Formulario, request_id: str, status: str
+    ) -> None:
+        formulario.estado          = EstadoFormulario.VALIDADO
+        formulario.zoho_request_id = None
+        self._sesion.commit()
+
+        logger.info(
+            "Formulario %s devuelto a VALIDADO (ZohoSign status='%s', request_id=%s)",
+            formulario.id,
+            status,
+            request_id,
+        )
+
+    # ─── Cancelación de firma ────────────────────────────────────────────────
+
+    def cancelar_firma(self, formulario_id: str) -> dict:
+        """
+        Cancela la solicitud de firma pendiente en ZohoSign y devuelve el formulario
+        al estado VALIDADO para que pueda reenviarse a firma si es necesario.
+
+        Solo es posible cuando el formulario está en estado PENDIENTE_FIRMA.
+        """
+        formulario = self._obtener_formulario(formulario_id)
+
+        if formulario.estado != EstadoFormulario.PENDIENTE_FIRMA:
+            raise FormularioNoEditableError(
+                f"Solo se puede cancelar la firma cuando el formulario está en estado "
+                f"'pendiente_firma' (estado actual: '{formulario.estado}')."
+            )
+
+        if not formulario.zoho_request_id:
+            raise FormularioNoEditableError(
+                "El formulario no tiene una solicitud de firma activa en ZohoSign."
+            )
+
+        self._zoho.cancelar_solicitud_firma(formulario.zoho_request_id)
+
+        formulario.estado          = EstadoFormulario.VALIDADO
+        formulario.zoho_request_id = None
+        self._sesion.commit()
+
+        logger.info("Firma cancelada para formulario %s → VALIDADO", formulario_id)
+        return {"estado": formulario.estado}
+
+    # ─── Verificación manual de estado ───────────────────────────────────────
+
+    def verificar_estado_firma(self, formulario_id: str) -> dict:
+        """
+        Consulta ZohoSign y aplica la transición de estado si la firma cambió.
+        Equivalente al webhook pero activado manualmente desde el portal.
+        """
+        formulario = self._obtener_formulario(formulario_id)
+
+        if formulario.estado != EstadoFormulario.PENDIENTE_FIRMA:
+            raise FormularioNoEditableError(
+                f"Solo se puede verificar en estado 'pendiente_firma' (actual: '{formulario.estado}')."
+            )
+
+        if not formulario.zoho_request_id:
+            raise FormularioNoEditableError("No hay solicitud de firma activa.")
+
+        estado_zoho = self._zoho.obtener_estado_solicitud(formulario.zoho_request_id)
+
+        if estado_zoho.lower() == "completed":
+            self._procesar_firma_completada(formulario, formulario.zoho_request_id)
+        elif estado_zoho.lower() in ("declined", "expired", "recalled"):
+            self._procesar_firma_cancelada(formulario, formulario.zoho_request_id, estado_zoho)
+
+        logger.info(
+            "Verificación manual formulario %s: ZohoSign='%s' → estado='%s'",
+            formulario_id, estado_zoho, formulario.estado,
+        )
+        return {"estado_zoho": estado_zoho, "estado": formulario.estado}
+
+    # ─── Descarga del firmado ─────────────────────────────────────────────────
+
+    def resolver_documento_firmado(self, formulario_id: str) -> Path:
+        """
+        Devuelve la ruta en disco del PDF firmado.
+
+        Lanza FirmaNoDisponibleError si el formulario no está en estado FIRMADO
+        o si el archivo no existe en disco.
+        """
+        formulario = self._obtener_formulario(formulario_id)
+
+        if formulario.estado != EstadoFormulario.FIRMADO or not formulario.ruta_documento_firmado:
+            raise FirmaNoDisponibleError(formulario_id)
+
+        ruta = Path(formulario.ruta_documento_firmado)
+        if not ruta.exists():
+            raise FirmaNoDisponibleError(formulario_id)
+
+        return ruta
