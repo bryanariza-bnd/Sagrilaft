@@ -1,12 +1,11 @@
 """
-ExpedienteService — consulta de formularios enviados para el portal interno.
+ExpedienteService — gestión de formularios enviados para el portal interno.
 
 Responsabilidades:
   - Listar formularios en estado no-borrador (enviados, validados, rechazados).
   - Recuperar el detalle completo de un expediente con documentos y validaciones.
   - Resolver la ruta de un documento en disco para descarga directa.
-
-SRP: servicio de solo lectura. No modifica estado de formularios ni documentos.
+  - Aprobar o rechazar un formulario enviado (cambio de estado manual).
 """
 
 from pathlib import Path
@@ -15,7 +14,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from domain.excepciones import DocumentoNoEncontradoError, FormularioNoEncontradoError
+from domain.excepciones import DocumentoNoEncontradoError, FormularioNoEditableError, FormularioNoEncontradoError
 from infrastructure.persistencia.models import (
     DocumentoAdjunto,
     EstadoFormulario,
@@ -27,12 +26,19 @@ _ESTADOS_EXPEDIENTE = [
     EstadoFormulario.ENVIADO,
     EstadoFormulario.VALIDADO,
     EstadoFormulario.RECHAZADO,
+    EstadoFormulario.PENDIENTE_FIRMA,
+    EstadoFormulario.FIRMADO,
 ]
 
 
 class ExpedienteService:
     """
-    Servicio de solo lectura para la bandeja de formularios recibidos del portal interno.
+    Servicio de gestión de expedientes para el portal interno.
+
+    Responsabilidades:
+      - Listar y detallar formularios en estado no-borrador.
+      - Resolver documentos adjuntos para descarga directa.
+      - Aprobar o rechazar un formulario enviado (transición de estado manual).
     """
 
     def __init__(self, sesion: Session) -> None:
@@ -190,6 +196,30 @@ class ExpedienteService:
                 for doc in documentos
             ],
         }
+
+    # ─── Aprobación / Rechazo ─────────────────────────────────────────────────
+
+    def aprobar_expediente(self, formulario_id: str) -> Dict[str, Any]:
+        """Cambia el estado de ENVIADO a VALIDADO (aprobación manual del portal interno)."""
+        formulario = self._buscar_formulario_expediente(formulario_id)
+        if formulario.estado != EstadoFormulario.ENVIADO:
+            raise FormularioNoEditableError(
+                f"Solo se puede aprobar un formulario en estado 'enviado' (actual: '{formulario.estado}')."
+            )
+        formulario.estado = EstadoFormulario.VALIDADO
+        self._sesion.commit()
+        return {"estado": formulario.estado}
+
+    def rechazar_expediente(self, formulario_id: str) -> Dict[str, Any]:
+        """Cambia el estado de ENVIADO o VALIDADO a RECHAZADO."""
+        formulario = self._buscar_formulario_expediente(formulario_id)
+        if formulario.estado not in (EstadoFormulario.ENVIADO, EstadoFormulario.VALIDADO):
+            raise FormularioNoEditableError(
+                f"Solo se puede rechazar un formulario en estado 'enviado' o 'validado' (actual: '{formulario.estado}')."
+            )
+        formulario.estado = EstadoFormulario.RECHAZADO
+        self._sesion.commit()
+        return {"estado": formulario.estado}
 
     # ─── Descarga ─────────────────────────────────────────────────────────────
 

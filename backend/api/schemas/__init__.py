@@ -32,6 +32,7 @@ from .formularios import (
 from .expedientes import ExpedienteDetalle, ExpedienteResumen
 from .listas_cautela import BusquedaListaCautela, RespuestaListaCautela, ResultadoListaCautela
 from .validaciones import ValidacionResponse
+from .webhooks import ZohoWebhookPayload
 
 __all__ = [
     # Acceso manual
@@ -67,5 +68,7 @@ __all__ = [
     "ResultadoListaCautela",
     # Validaciones
     "ValidacionResponse",
+    # Webhooks
+    "ZohoWebhookPayload",
 ]
 

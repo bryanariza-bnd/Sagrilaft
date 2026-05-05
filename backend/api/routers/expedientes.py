@@ -13,9 +13,11 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from api.dependencies import obtener_servicio_firma
 from api.schemas import ExpedienteDetalle, ExpedienteResumen
 from infrastructure.persistencia.database import get_db
 from services.expedientes.expediente_service import ExpedienteService
+from services.firma.firma_service import FirmaService
 
 enrutador = APIRouter(prefix="/api/expedientes", tags=["expedientes"])
 
@@ -85,4 +87,105 @@ def descargar_documento(
         path=ruta,
         filename=nombre_archivo,
         media_type=content_type,
+    )
+
+
+# ─── Aprobación / Rechazo ────────────────────────────────────────────────────
+
+@enrutador.post(
+    "/{formulario_id}/aprobar",
+    summary="Aprobar formulario enviado",
+    responses={400: {"description": "El formulario no está en estado 'enviado'"}},
+)
+def aprobar_expediente(
+    formulario_id: str,
+    servicio: ExpedienteService = Depends(_obtener_servicio),
+) -> dict:
+    return servicio.aprobar_expediente(formulario_id)
+
+
+@enrutador.post(
+    "/{formulario_id}/rechazar",
+    summary="Rechazar formulario",
+    responses={400: {"description": "El formulario no puede rechazarse en su estado actual"}},
+)
+def rechazar_expediente(
+    formulario_id: str,
+    servicio: ExpedienteService = Depends(_obtener_servicio),
+) -> dict:
+    return servicio.rechazar_expediente(formulario_id)
+
+
+# ─── Firma electrónica ────────────────────────────────────────────────────────
+
+@enrutador.post(
+    "/{formulario_id}/enviar-a-firma",
+    summary="Enviar formulario a firma electrónica",
+    description=(
+        "Envía el PDF del formulario a ZohoSign para firma electrónica. "
+        "El formulario debe estar en estado 'validado'. "
+        "ZohoSign notificará al firmante por correo electrónico."
+    ),
+    responses={
+        400: {"description": "El formulario no está en estado 'validado'"},
+        404: {"description": "Formulario no encontrado"},
+    },
+)
+def enviar_a_firma(
+    formulario_id: str,
+    servicio: FirmaService = Depends(obtener_servicio_firma),
+) -> dict:
+    return servicio.enviar_a_firma(formulario_id)
+
+
+@enrutador.post(
+    "/{formulario_id}/verificar-firma",
+    summary="Verificar estado de firma en ZohoSign",
+    description="Consulta ZohoSign y actualiza el estado del formulario si la firma cambió. Alternativa al webhook para entornos sin URL pública.",
+    responses={400: {"description": "Formulario no está en estado 'pendiente_firma'"}},
+)
+def verificar_estado_firma(
+    formulario_id: str,
+    servicio: FirmaService = Depends(obtener_servicio_firma),
+) -> dict:
+    return servicio.verificar_estado_firma(formulario_id)
+
+
+@enrutador.post(
+    "/{formulario_id}/cancelar-firma",
+    summary="Cancelar solicitud de firma pendiente",
+    description=(
+        "Cancela la solicitud de firma en ZohoSign (recall) y devuelve el formulario "
+        "al estado 'validado'. Solo disponible en estado 'pendiente_firma'."
+    ),
+    responses={
+        400: {"description": "El formulario no está en estado 'pendiente_firma'"},
+        404: {"description": "Formulario no encontrado"},
+    },
+)
+def cancelar_firma(
+    formulario_id: str,
+    servicio: FirmaService = Depends(obtener_servicio_firma),
+) -> dict:
+    return servicio.cancelar_firma(formulario_id)
+
+
+@enrutador.get(
+    "/{formulario_id}/documento-firmado",
+    summary="Descargar documento firmado",
+    description="Descarga el PDF firmado electrónicamente. Solo disponible en estado 'firmado'.",
+    responses={
+        404: {"description": "Documento firmado no disponible"},
+    },
+)
+def descargar_documento_firmado(
+    formulario_id: str,
+    servicio: FirmaService = Depends(obtener_servicio_firma),
+) -> FileResponse:
+    ruta = servicio.resolver_documento_firmado(formulario_id)
+    es_zip = ruta.suffix == ".zip"
+    return FileResponse(
+        path=ruta,
+        filename="formulario_firmado.zip" if es_zip else "formulario_firmado.pdf",
+        media_type="application/zip" if es_zip else "application/pdf",
     )
