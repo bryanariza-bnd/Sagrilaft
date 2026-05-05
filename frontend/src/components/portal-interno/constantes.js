@@ -59,18 +59,20 @@ export const ETIQUETA_AREA_RESPONSABLE = crearMapaEtiquetas(AREAS_RESPONSABLES);
 export const ESTADOS_FORMULARIO = [
   // Los valores deben coincidir con `EstadoFormulario` del backend (minúsculas):
   // backend/infrastructure/persistencia/models.py
-  { valor: 'enviado',   etiqueta: 'Enviado',   bg: '#eff6ff', color: '#1d4ed8', borde: '#bfdbfe' },
-  { valor: 'validado',  etiqueta: 'Validado',  bg: '#f0fdf4', color: '#15803d', borde: '#bbf7d0' },
-  { valor: 'rechazado', etiqueta: 'Rechazado', bg: '#fef2f2', color: '#dc2626', borde: '#fca5a5' },
+  { valor: 'enviado',         etiqueta: 'Enviado',          bg: '#eff6ff', color: '#1d4ed8', borde: '#bfdbfe' },
+  { valor: 'validado',        etiqueta: 'Validado',         bg: '#f0fdf4', color: '#15803d', borde: '#bbf7d0' },
+  { valor: 'rechazado',       etiqueta: 'Rechazado',        bg: '#fef2f2', color: '#dc2626', borde: '#fca5a5' },
+  { valor: 'pendiente_firma', etiqueta: 'Pendiente firma',  bg: '#fefce8', color: '#854d0e', borde: '#fde047' },
+  { valor: 'firmado',         etiqueta: 'Firmado',          bg: '#f5f3ff', color: '#6d28d9', borde: '#c4b5fd' },
 ];
 
 export const ETIQUETA_ESTADO_FORMULARIO = crearMapaEtiquetas(ESTADOS_FORMULARIO);
 export const ESTILO_ESTADO_FORMULARIO   = crearMapaEstilos(ESTADOS_FORMULARIO);
 
 // ── Constantes de documentos ──────────────────────────────────────────────────
-// Sincronizar con tipo_documento="FORMULARIO_PDF" en backend/services/formulario/formulario_service.py.
+// Sincronizar con: backend/domain/constantes.py → TIPO_DOCUMENTO_FORMULARIO_PDF
 
-export const TIPO_DOCUMENTO_PDF = 'FORMULARIO_PDF';
+export const TIPO_DOCUMENTO_FORMULARIO_PDF = 'FORMULARIO_PDF';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 

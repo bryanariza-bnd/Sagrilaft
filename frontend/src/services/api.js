@@ -55,8 +55,9 @@ export const api = {
   async obtenerFormulario(codigo) {
     try {
       return await requestJson(`/formularios/${codigo}`);
-    } catch {
-      throw new Error('Formulario no encontrado');
+    } catch (err) {
+      if (err.status === 404) throw new Error('Formulario no encontrado');
+      throw err;
     }
   },
 
@@ -118,45 +119,29 @@ export const api = {
 
   // Recuperación de sesión por acceso manual (código de petición + PIN)
   async recuperarSesionPorAcceso(codigoPeticion, pin) {
-    const res = await fetch(`${API_BASE}/formularios/sesion/recuperar-por-acceso`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigo_peticion: codigoPeticion, pin }),
-    });
-    if (res.status === 401) {
-      const err = new Error('Código de petición o PIN incorrecto.');
-      err.code = 'CREDENCIALES_INVALIDAS';
+    try {
+      return await requestJson('/formularios/sesion/recuperar-por-acceso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo_peticion: codigoPeticion, pin }),
+      });
+    } catch (err) {
+      if (err.status === 401) { err.code = 'CREDENCIALES_INVALIDAS'; throw err; }
+      if (err.status === 409) { err.code = 'FORMULARIO_YA_ENVIADO';  throw err; }
+      if (err.status === 410) { err.code = 'ACCESO_EXPIRADO';        throw err; }
       throw err;
     }
-    if (res.status === 409) {
-      const err = new Error('El formulario asociado a ese código ya fue enviado.');
-      err.code = 'FORMULARIO_YA_ENVIADO';
-      throw err;
-    }
-    if (res.status === 410) {
-      const err = new Error('El acceso ha expirado. Solicite un nuevo enlace al área responsable.');
-      err.code = 'ACCESO_EXPIRADO';
-      throw err;
-    }
-    if (!res.ok) throw new Error(await leerDetalleError(res));
-    return res.json();
   },
 
   // Acceso via token de diligenciamiento (enlace recibido por correo)
   async resolverTokenDiligenciamiento(token) {
-    const res = await fetch(`${API_BASE}/accesos-manuales/token/${token}`);
-    if (res.status === 404) {
-      const err = new Error('El enlace de diligenciamiento no es válido o ya fue consumido.');
-      err.code = 'TOKEN_INVALIDO';
+    try {
+      return await requestJson(`/accesos-manuales/token/${token}`);
+    } catch (err) {
+      if (err.status === 404) { err.code = 'TOKEN_INVALIDO';  throw err; }
+      if (err.status === 410) { err.code = 'ACCESO_EXPIRADO'; throw err; }
       throw err;
     }
-    if (res.status === 410) {
-      const err = new Error('El acceso ha expirado. Solicite un nuevo enlace al área responsable.');
-      err.code = 'ACCESO_EXPIRADO';
-      throw err;
-    }
-    if (!res.ok) throw new Error(await leerDetalleError(res));
-    return res.json();
   },
 
   // Portal interno — accesos manuales
@@ -178,7 +163,7 @@ export const api = {
     if (tipo)     params.append('tipo_contraparte', tipo);
     if (busqueda) params.append('busqueda', busqueda);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return requestJson(`/expedientes/${query}`, opcionesFetch ?? undefined);
+    return requestJson(`/expedientes/${query}`, opcionesFetch);
   },
 
   async obtenerExpediente(formularioId) {
@@ -187,6 +172,36 @@ export const api = {
 
   urlDescargaDocumento(formularioId, docId) {
     return `${API_BASE}/expedientes/${formularioId}/documentos/${docId}/descargar`;
+  },
+
+  async aprobarExpediente(formularioId) {
+    return requestJson(`/expedientes/${formularioId}/aprobar`, { method: 'POST' });
+  },
+
+  async rechazarExpediente(formularioId) {
+    return requestJson(`/expedientes/${formularioId}/rechazar`, { method: 'POST' });
+  },
+
+  async enviarAFirma(formularioId) {
+    return requestJson(`/expedientes/${formularioId}/enviar-a-firma`, {
+      method: 'POST',
+    });
+  },
+
+  async verificarFirma(formularioId) {
+    return requestJson(`/expedientes/${formularioId}/verificar-firma`, {
+      method: 'POST',
+    });
+  },
+
+  async cancelarFirma(formularioId) {
+    return requestJson(`/expedientes/${formularioId}/cancelar-firma`, {
+      method: 'POST',
+    });
+  },
+
+  urlDocumentoFirmado(formularioId) {
+    return `${API_BASE}/expedientes/${formularioId}/documento-firmado`;
   },
 
   // Pre-llenado IA

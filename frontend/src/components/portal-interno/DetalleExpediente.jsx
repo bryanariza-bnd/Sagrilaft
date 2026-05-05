@@ -9,16 +9,22 @@
  * sensible está contenida exclusivamente en el PDF oficial descargable.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { api } from '../../services/api';
+import { useExpedienteDetalle } from './hooks/useExpedienteDetalle';
 import { estilosEstadoCargaBase } from './ui/listaStyles';
 import BadgeEstadoFormulario from './BadgeEstadoFormulario';
 import {
   ETIQUETA_TIPO_CONTRAPARTE,
   formatearFechaCorta,
   formatearBytes,
-  TIPO_DOCUMENTO_PDF,
+  TIPO_DOCUMENTO_FORMULARIO_PDF,
 } from './constantes';
+
+const ESTADO_ENVIADO         = 'enviado';
+const ESTADO_VALIDADO        = 'validado';
+const ESTADO_PENDIENTE_FIRMA = 'pendiente_firma';
+const ESTADO_FIRMADO         = 'firmado';
 
 // ── Estilos ─────────────────────────────────────────────────────────────────
 
@@ -199,6 +205,60 @@ const s = {
     color:     'var(--gray-400, #94a3b8)',
     fontSize:  '0.85rem',
   },
+  // Banner firma
+  bannerFirma: {
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'space-between',
+    gap:            '16px',
+    borderRadius:   'var(--radius-md, 8px)',
+    padding:        '16px 20px',
+    marginBottom:   '16px',
+    flexWrap:       'wrap',
+  },
+  bannerFirmaValidado: {
+    background: 'linear-gradient(135deg, #854d0e 0%, #ca8a04 100%)',
+  },
+  bannerFirmaPendiente: {
+    background: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)',
+  },
+  bannerFirmaFirmado: {
+    background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
+  },
+  bannerFirmaTextos: {
+    display:       'flex',
+    flexDirection: 'column',
+    gap:           '3px',
+  },
+  bannerFirmaTitulo: {
+    fontSize:   '0.92rem',
+    fontWeight: '700',
+    color:      '#fff',
+    margin:     0,
+  },
+  bannerFirmaSubtitulo: {
+    fontSize: '0.78rem',
+    color:    'rgba(255,255,255,0.75)',
+    margin:   0,
+  },
+  btnFirma: {
+    padding:        '9px 20px',
+    background:     '#fff',
+    border:         'none',
+    borderRadius:   'var(--radius-sm, 6px)',
+    fontSize:       '0.85rem',
+    fontWeight:     '700',
+    cursor:         'pointer',
+    textDecoration: 'none',
+    whiteSpace:     'nowrap',
+    flexShrink:     0,
+  },
+  btnFirmaColor: { color: '#854d0e' },
+  btnFirmaColorFirmado: { color: '#6d28d9' },
+  btnFirmaDeshabilitado: {
+    opacity: 0.6,
+    cursor:  'not-allowed',
+  },
   // Estados
   spinner: {
     ...estilosEstadoCargaBase.spinner,
@@ -267,30 +327,197 @@ function FilaDocumento({ documento, formularioId }) {
   );
 }
 
+function BannerFirma({ estado, formularioId, onFirmaEnviada }) {
+  const [enviando, setEnviando]       = useState(false); // enviar a ZohoSign (VALIDADO)
+  const [aprobando, setAprobando]     = useState(false); // aprobar expediente (ENVIADO)
+  const [rechazando, setRechazando]   = useState(false); // rechazar expediente (ENVIADO)
+  const [cancelando, setCancelando]   = useState(false);
+  const [verificando, setVerificando] = useState(false);
+  const [errorFirma, setErrorFirma]   = useState(null);
+
+  async function handleEnviarAFirma() {
+    setEnviando(true);
+    setErrorFirma(null);
+    try {
+      await api.enviarAFirma(formularioId);
+      onFirmaEnviada();
+    } catch (err) {
+      setErrorFirma(err.message || 'Error al enviar a firma. Intente nuevamente.');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function handleCancelarFirma() {
+    setCancelando(true);
+    setErrorFirma(null);
+    try {
+      await api.cancelarFirma(formularioId);
+      onFirmaEnviada();
+    } catch (err) {
+      setErrorFirma(err.message || 'Error al cancelar la firma. Intente nuevamente.');
+    } finally {
+      setCancelando(false);
+    }
+  }
+
+  async function handleVerificarFirma() {
+    setVerificando(true);
+    setErrorFirma(null);
+    try {
+      await api.verificarFirma(formularioId);
+      onFirmaEnviada();
+    } catch (err) {
+      setErrorFirma(err.message || 'Error al verificar el estado. Intente nuevamente.');
+    } finally {
+      setVerificando(false);
+    }
+  }
+
+  async function handleAprobar() {
+    setAprobando(true);
+    setErrorFirma(null);
+    try {
+      await api.aprobarExpediente(formularioId);
+      onFirmaEnviada();
+    } catch (err) {
+      setErrorFirma(err.message || 'Error al aprobar.');
+    } finally {
+      setAprobando(false);
+    }
+  }
+
+  async function handleRechazar() {
+    setRechazando(true);
+    setErrorFirma(null);
+    try {
+      await api.rechazarExpediente(formularioId);
+      onFirmaEnviada();
+    } catch (err) {
+      setErrorFirma(err.message || 'Error al rechazar.');
+    } finally {
+      setRechazando(false);
+    }
+  }
+
+  if (estado === ESTADO_ENVIADO) {
+    const ocupado = aprobando || rechazando;
+    return (
+      <div style={{ ...s.bannerFirma, background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)' }}>
+        <div style={s.bannerFirmaTextos}>
+          <p style={s.bannerFirmaTitulo}>Formulario recibido — pendiente de revisión</p>
+          <p style={s.bannerFirmaSubtitulo}>
+            {errorFirma || 'Revise los documentos adjuntos y apruebe o rechace el formulario.'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button
+            style={{ ...s.btnFirma, color: '#1d4ed8', ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
+            onClick={handleAprobar}
+            disabled={ocupado}
+            type="button"
+          >
+            {aprobando ? 'Aprobando…' : 'Aprobar'}
+          </button>
+          <button
+            style={{ ...s.btnFirma, color: '#991b1b', opacity: 0.85, ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
+            onClick={handleRechazar}
+            disabled={ocupado}
+            type="button"
+          >
+            {rechazando ? 'Rechazando…' : 'Rechazar'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (estado === ESTADO_VALIDADO) {
+    return (
+      <div style={{ ...s.bannerFirma, ...s.bannerFirmaValidado }}>
+        <div style={s.bannerFirmaTextos}>
+          <p style={s.bannerFirmaTitulo}>Formulario listo para firma electrónica</p>
+          <p style={s.bannerFirmaSubtitulo}>
+            {errorFirma || 'El formulario fue validado. Envíelo a ZohoSign para que la contraparte firme.'}
+          </p>
+        </div>
+        <button
+          style={{ ...s.btnFirma, ...s.btnFirmaColor, ...(enviando ? s.btnFirmaDeshabilitado : {}) }}
+          onClick={handleEnviarAFirma}
+          disabled={enviando}
+          type="button"
+        >
+          {enviando ? 'Enviando…' : 'Enviar a firma'}
+        </button>
+      </div>
+    );
+  }
+
+  if (estado === ESTADO_PENDIENTE_FIRMA) {
+    const ocupado = cancelando || verificando;
+    return (
+      <div style={{ ...s.bannerFirma, ...s.bannerFirmaPendiente }}>
+        <div style={s.bannerFirmaTextos}>
+          <p style={s.bannerFirmaTitulo}>Firma electrónica pendiente</p>
+          <p style={s.bannerFirmaSubtitulo}>
+            {errorFirma || 'Se envió la solicitud de firma a ZohoSign. Esperando que la contraparte firme.'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button
+            style={{ ...s.btnFirma, color: '#78350f', ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
+            onClick={handleVerificarFirma}
+            disabled={ocupado}
+            type="button"
+          >
+            {verificando ? 'Verificando…' : 'Verificar estado'}
+          </button>
+          <button
+            style={{ ...s.btnFirma, color: '#78350f', opacity: 0.7, ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
+            onClick={handleCancelarFirma}
+            disabled={ocupado}
+            type="button"
+          >
+            {cancelando ? 'Cancelando…' : 'Cancelar'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (estado === ESTADO_FIRMADO) {
+    const urlFirmado = api.urlDocumentoFirmado(formularioId);
+    return (
+      <div style={{ ...s.bannerFirma, ...s.bannerFirmaFirmado }}>
+        <div style={s.bannerFirmaTextos}>
+          <p style={s.bannerFirmaTitulo}>Documento firmado electrónicamente</p>
+          <p style={s.bannerFirmaSubtitulo}>La contraparte firmó el formulario vía ZohoSign.</p>
+        </div>
+        <a
+          href={urlFirmado}
+          download="formulario_firmado.pdf"
+          style={{ ...s.btnFirma, ...s.btnFirmaColorFirmado }}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Descargar firmado
+        </a>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function DetalleExpediente({ formularioId, razonSocial, onVolver }) {
-  const [expediente, setExpediente] = useState(null);
-  const [cargando, setCargando]     = useState(true);
-  const [error, setError]           = useState(null);
-
-  useEffect(() => {
-    let activo = true;
-    setCargando(true);
-    setError(null);
-
-    api.obtenerExpediente(formularioId)
-      .then(datos => { if (activo) setExpediente(datos); })
-      .catch(() => { if (activo) setError('No se pudo cargar el formulario. Intente nuevamente.'); })
-      .finally(() => { if (activo) setCargando(false); });
-
-    return () => { activo = false; };
-  }, [formularioId]);
+  const { expediente, cargando, error, recargarExpediente } = useExpedienteDetalle(formularioId);
 
   const tipoLabel         = expediente ? (ETIQUETA_TIPO_CONTRAPARTE[expediente.tipo_contraparte] ?? expediente.tipo_contraparte) : '';
   const todosDocumentos   = expediente?.documentos ?? [];
-  const pdfFormulario     = todosDocumentos.find(d => d.tipo_documento === TIPO_DOCUMENTO_PDF) ?? null;
-  const documentosAdjuntos = todosDocumentos.filter(d => d.tipo_documento !== TIPO_DOCUMENTO_PDF);
+  const pdfFormulario     = todosDocumentos.find(d => d.tipo_documento === TIPO_DOCUMENTO_FORMULARIO_PDF) ?? null;
+  const documentosAdjuntos = todosDocumentos.filter(d => d.tipo_documento !== TIPO_DOCUMENTO_FORMULARIO_PDF);
 
   return (
     <div style={s.overlay}>
@@ -325,6 +552,13 @@ export default function DetalleExpediente({ formularioId, razonSocial, onVolver 
             {pdfFormulario && (
               <BannerPdfFormulario documento={pdfFormulario} formularioId={formularioId} />
             )}
+
+            {/* Firma electrónica */}
+            <BannerFirma
+              estado={expediente.estado}
+              formularioId={formularioId}
+              onFirmaEnviada={recargarExpediente}
+            />
 
             {/* Documentos adjuntos por el cliente/proveedor */}
             <div style={s.seccion}>
