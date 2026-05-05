@@ -20,6 +20,7 @@ from api.schemas import (
     FormularioUpdate,
     ResultadoValidacionEnvio,
 )
+from domain.constantes import TIPO_DOCUMENTO_FORMULARIO_PDF
 from domain.excepciones import (
     FormularioNoEditableError,
     FormularioNoEncontradoError,
@@ -219,7 +220,7 @@ class FormularioService:
     def _registrar_pdf_oficial(self, formulario_id: str, pdf: ArchivoPdfGenerado) -> None:
         self._documentos.registrar_documento_en_bd(
             formulario_id=formulario_id,
-            tipo_documento="FORMULARIO_PDF",
+            tipo_documento=TIPO_DOCUMENTO_FORMULARIO_PDF,
             nombre_archivo=pdf.nombre_archivo,
             ruta_archivo=pdf.ruta_archivo,
             content_type="application/pdf",
