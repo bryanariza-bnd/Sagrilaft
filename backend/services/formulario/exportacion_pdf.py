@@ -147,7 +147,7 @@ def _render_tabla(
 
 _CSS_BASE = """
     :root{
-      --primary-600:#4f46e5; --primary-700:#4338ca; --primary-800:#3730a3; --primary-900:#312e81;
+      --primary-500:#6366f1; --primary-600:#4f46e5; --primary-700:#4338ca; --primary-800:#3730a3; --primary-900:#312e81;
       --gray-50:#f8fafc; --gray-100:#f1f5f9; --gray-200:#e2e8f0; --gray-600:#475569; --gray-800:#1e293b; --gray-900:#0f172a;
       --radius-lg:16px; --shadow-md:0 4px 6px -1px rgba(0,0,0,.10),0 2px 4px -1px rgba(0,0,0,.06);
     }
@@ -184,6 +184,15 @@ _CSS_BASE = """
     tbody tr:last-child td{ border-bottom:0; }
     .muted{ color:var(--gray-600); font-size:10px; margin-top:6px; }
     .footer{ margin-top:10px; font-size:9px; color:var(--gray-600); }
+    .card{ page-break-inside:avoid; }
+    .paso{ page-break-before:always; }
+    .paso-primero{ page-break-before:auto; }
+    .paso-titulo{
+      font-size:11px; font-weight:800; text-transform:uppercase;
+      letter-spacing:.08em; color:var(--primary-600);
+      border-bottom:2px solid var(--primary-500);
+      padding-bottom:6px; margin:0 0 10px 0;
+    }
     """
 
 
@@ -205,138 +214,160 @@ class _SeccionTabla:
 
 _SeccionFormulario = Union[_SeccionCampos, _SeccionTabla]
 
-_SECCIONES_FORMULARIO: List[_SeccionFormulario] = [
-    _SeccionCampos("Clasificación", [
-        ("Tipo de contraparte",       "tipo_contraparte"),
-        ("Tipo de persona",           "tipo_persona"),
-        ("Tipo de solicitud",         "tipo_solicitud"),
-        ("Clasificación de actividad","clasificacion_actividad"),
+
+@dataclass(frozen=True)
+class _PasoFormulario:
+    numero: int
+    titulo: str
+    secciones: List[_SeccionFormulario]
+
+
+_PASOS_FORMULARIO: List[_PasoFormulario] = [
+    _PasoFormulario(2, "Clasificación e Información Básica", [
+        _SeccionCampos("Clasificación", [
+            ("Tipo de contraparte",       "tipo_contraparte"),
+            ("Tipo de persona",           "tipo_persona"),
+            ("Tipo de solicitud",         "tipo_solicitud"),
+            ("Clasificación de actividad","clasificacion_actividad"),
+        ]),
+        _SeccionCampos("Información Básica", [
+            ("Razón social",              "razon_social"),
+            ("Tipo de identificación",    "tipo_identificacion"),
+            ("Número de identificación",  "numero_identificacion"),
+            ("Dígito de verificación",    "digito_verificacion"),
+            ("Dirección",                 "direccion"),
+            ("País",                      "pais"),
+            ("Departamento",              "departamento"),
+            ("Ciudad",                    "ciudad"),
+            ("Teléfono",                  "telefono"),
+            ("Fax",                       "fax"),
+            ("Correo",                    "correo"),
+            ("Código ICA",                "codigo_ica"),
+            ("Página web",                "pagina_web"),
+        ]),
     ]),
-    _SeccionCampos("Información Básica", [
-        ("Razón social",              "razon_social"),
-        ("Tipo de identificación",    "tipo_identificacion"),
-        ("Número de identificación",  "numero_identificacion"),
-        ("Dígito de verificación",    "digito_verificacion"),
-        ("Dirección",                 "direccion"),
-        ("País",                      "pais"),
-        ("Departamento",              "departamento"),
-        ("Ciudad",                    "ciudad"),
-        ("Teléfono",                  "telefono"),
-        ("Fax",                       "fax"),
-        ("Correo",                    "correo"),
-        ("Código ICA",                "codigo_ica"),
-        ("Página web",                "pagina_web"),
+    _PasoFormulario(3, "Representante Legal", [
+        _SeccionCampos("Representante Legal o Persona Natural", [
+            ("Nombre",                    "nombre_representante"),
+            ("Tipo de documento",         "tipo_doc_representante"),
+            ("Número de documento",       "numero_doc_representante"),
+            ("Fecha de expedición",       "fecha_expedicion"),
+            ("Ciudad de expedición",      "ciudad_expedicion"),
+            ("Nacionalidad",              "nacionalidad"),
+            ("Fecha de nacimiento",       "fecha_nacimiento"),
+            ("Ciudad de nacimiento",      "ciudad_nacimiento"),
+            ("Profesión",                 "profesion"),
+            ("Correo",                    "correo_representante"),
+            ("Teléfono",                  "telefono_representante"),
+            ("Dirección (funciones)",     "direccion_funciones"),
+            ("Ciudad (funciones)",        "ciudad_funciones"),
+            ("Dirección de residencia",   "direccion_residencia"),
+            ("Ciudad de residencia",      "ciudad_residencia"),
+        ]),
     ]),
-    _SeccionCampos("Representante Legal o Persona Natural", [
-        ("Nombre",                    "nombre_representante"),
-        ("Tipo de documento",         "tipo_doc_representante"),
-        ("Número de documento",       "numero_doc_representante"),
-        ("Fecha de expedición",       "fecha_expedicion"),
-        ("Ciudad de expedición",      "ciudad_expedicion"),
-        ("Nacionalidad",              "nacionalidad"),
-        ("Fecha de nacimiento",       "fecha_nacimiento"),
-        ("Ciudad de nacimiento",      "ciudad_nacimiento"),
-        ("Profesión",                 "profesion"),
-        ("Correo",                    "correo_representante"),
-        ("Teléfono",                  "telefono_representante"),
-        ("Dirección (funciones)",     "direccion_funciones"),
-        ("Ciudad (funciones)",        "ciudad_funciones"),
-        ("Dirección de residencia",   "direccion_residencia"),
-        ("Ciudad de residencia",      "ciudad_residencia"),
+    _PasoFormulario(4, "Junta Directiva y Accionistas", [
+        _SeccionTabla("Junta Directiva y Representantes", "junta_directiva", [
+            ("cargo",       "Cargo"),
+            ("nombre",      "Nombre"),
+            ("tipo_id",     "Tipo ID"),
+            ("numero_id",   "Número ID"),
+            ("es_pep",      "¿PEP?"),
+            ("vinculos_pep","Vínculos PEP"),
+        ]),
+        _SeccionTabla("Composición Accionaria", "accionistas", [
+            ("nombre",      "Nombre"),
+            ("porcentaje",  "% Participación"),
+            ("tipo_id",     "Tipo ID"),
+            ("numero_id",   "Número ID"),
+            ("es_pep",      "¿PEP?"),
+            ("vinculos_pep","Vínculos PEP"),
+        ]),
+        _SeccionTabla("Beneficiario Final", "beneficiario_final", [
+            ("nombre",      "Nombre"),
+            ("porcentaje",  "% Control"),
+            ("tipo_id",     "Tipo ID"),
+            ("numero_id",   "Número ID"),
+            ("es_pep",      "¿PEP?"),
+            ("vinculos_pep","Vínculos PEP"),
+        ]),
     ]),
-    _SeccionTabla("Junta Directiva y Representantes", "junta_directiva", [
-        ("cargo",       "Cargo"),
-        ("nombre",      "Nombre"),
-        ("tipo_id",     "Tipo ID"),
-        ("numero_id",   "Número ID"),
-        ("es_pep",      "¿PEP?"),
-        ("vinculos_pep","Vínculos PEP"),
+    _PasoFormulario(5, "Información Financiera y Referencias", [
+        _SeccionCampos("Información Financiera", [
+            ("Actividad Económica Principal", "actividad_economica"),
+            ("Código CIIU",                   "codigo_ciiu"),
+            ("Ingresos Mensuales (COP)",      "ingresos_mensuales"),
+            ("Otros Ingresos (COP)",          "otros_ingresos"),
+            ("Egresos Mensuales (COP)",       "egresos_mensuales"),
+            ("Total Activos (COP)",           "total_activos"),
+            ("Total Pasivos (COP)",           "total_pasivos"),
+            ("Patrimonio (COP)",              "patrimonio"),
+        ]),
+        _SeccionTabla("Referencias Comerciales", "referencias_comerciales", [
+            ("nombre_establecimiento", "Nombre del establecimiento"),
+            ("persona_contacto",       "Persona a contactar"),
+            ("telefono",               "Teléfono"),
+            ("ciudad",                 "Ciudad"),
+        ], _normalizar_referencias_comerciales),
+        _SeccionTabla("Referencias Bancarias", "referencias_bancarias", [
+            ("banco",         "Banco"),
+            ("tipo_cuenta",   "Tipo cuenta"),
+            ("numero_cuenta", "Número cuenta"),
+            ("ciudad",        "Ciudad"),
+        ]),
     ]),
-    _SeccionTabla("Composición Accionaria", "accionistas", [
-        ("nombre",      "Nombre"),
-        ("porcentaje",  "% Participación"),
-        ("tipo_id",     "Tipo ID"),
-        ("numero_id",   "Número ID"),
-        ("es_pep",      "¿PEP?"),
-        ("vinculos_pep","Vínculos PEP"),
+    _PasoFormulario(6, "Moneda Extranjera y Régimen Tributario", [
+        _SeccionCampos("Operaciones en Moneda Extranjera", [
+            ("¿Realiza operaciones en moneda extranjera?", "realiza_operaciones_moneda_extranjera"),
+            ("Países de operaciones",                      "paises_operaciones"),
+            ("Tipos de transacción",                       "tipos_transaccion"),
+            ("Otros tipos de transacción",                 "tipos_transaccion_otros"),
+        ]),
+        _SeccionCampos("Clasificación de la Empresa y Régimen Tributario", [
+            ("Actividad (clasificación)",          "actividad_clasificacion"),
+            ("¿Cual? Especifique",                 "actividad_especifica"),
+            ("Sector",                             "sector"),
+            ("Vigilado por la Superintendencia de","superintendencia"),
+            ("Responsabilidades renta",            "responsabilidades_renta"),
+            ("Autorretenedor",                     "autorretenedor"),
+            ("Responsabilidades IVA",              "responsabilidades_iva"),
+            ("Régimen IVA",                        "regimen_iva"),
+            ("¿Es Gran Contribuyente?",            "gran_contribuyente"),
+            ("Entidad sin ánimo de lucro",         "entidad_sin_animo_lucro"),
+            ("Retención de Industria y Comercio",  "retencion_ica"),
+            ("Impuesto de Industria y Comercio",   "impuesto_ica"),
+            ("Entidad oficial",                    "entidad_oficial"),
+            ("Exento de Retención en la Fuente",   "exento_retencion_fuente"),
+        ]),
     ]),
-    _SeccionTabla("Beneficiario Final", "beneficiario_final", [
-        ("nombre",      "Nombre"),
-        ("porcentaje",  "% Control"),
-        ("tipo_id",     "Tipo ID"),
-        ("numero_id",   "Número ID"),
-        ("es_pep",      "¿PEP?"),
-        ("vinculos_pep","Vínculos PEP"),
+    _PasoFormulario(7, "Contactos e Información Bancaria", [
+        _SeccionCampos("Contactos — Persona autorizada para recepción de órdenes", [
+            ("Órdenes — Nombre",   "contacto_ordenes_nombre"),
+            ("Órdenes — Cargo",    "contacto_ordenes_cargo"),
+            ("Órdenes — Teléfono", "contacto_ordenes_telefono"),
+            ("Órdenes — Correo",   "contacto_ordenes_correo"),
+            ("Pagos — Nombre",     "contacto_pagos_nombre"),
+            ("Pagos — Cargo",      "contacto_pagos_cargo"),
+            ("Pagos — Teléfono",   "contacto_pagos_telefono"),
+            ("Pagos — Correo",     "contacto_pagos_correo"),
+        ]),
+        _SeccionTabla("Información Bancaria para Pagos", "informacion_bancaria_pagos", [
+            ("entidad_bancaria", "Banco"),
+            ("ciudad_oficina",   "Ciudad oficina"),
+            ("tipo_cuenta",      "Tipo cuenta"),
+            ("numero_cuenta",    "Número cuenta"),
+        ]),
     ]),
-    _SeccionCampos("Información Financiera", [
-        ("Actividad Económica Principal", "actividad_economica"),
-        ("Código CIIU",                   "codigo_ciiu"),
-        ("Ingresos Mensuales (COP)",      "ingresos_mensuales"),
-        ("Otros Ingresos (COP)",          "otros_ingresos"),
-        ("Egresos Mensuales (COP)",       "egresos_mensuales"),
-        ("Total Activos (COP)",           "total_activos"),
-        ("Total Pasivos (COP)",           "total_pasivos"),
-        ("Patrimonio (COP)",              "patrimonio"),
-    ]),
-    _SeccionTabla("Referencias Comerciales", "referencias_comerciales", [
-        ("nombre_establecimiento", "Nombre del establecimiento"),
-        ("persona_contacto",       "Persona a contactar"),
-        ("telefono",               "Teléfono"),
-        ("ciudad",                 "Ciudad"),
-    ], _normalizar_referencias_comerciales),
-    _SeccionTabla("Referencias Bancarias", "referencias_bancarias", [
-        ("banco",         "Banco"),
-        ("tipo_cuenta",   "Tipo cuenta"),
-        ("numero_cuenta", "Número cuenta"),
-        ("ciudad",        "Ciudad"),
-    ]),
-    _SeccionCampos("Operaciones en Moneda Extranjera", [
-        ("¿Realiza operaciones en moneda extranjera?", "realiza_operaciones_moneda_extranjera"),
-        ("Países de operaciones",                      "paises_operaciones"),
-        ("Tipos de transacción",                       "tipos_transaccion"),
-        ("Otros tipos de transacción",                 "tipos_transaccion_otros"),
-    ]),
-    _SeccionCampos("Clasificación de la Empresa y Régimen Tributario", [
-        ("Actividad (clasificación)",          "actividad_clasificacion"),
-        ("¿Cual? Especifique",                 "actividad_especifica"),
-        ("Sector",                             "sector"),
-        ("Vigilado por la Superintendencia de","superintendencia"),
-        ("Responsabilidades renta",            "responsabilidades_renta"),
-        ("Autorretenedor",                     "autorretenedor"),
-        ("Responsabilidades IVA",              "responsabilidades_iva"),
-        ("Régimen IVA",                        "regimen_iva"),
-        ("¿Es Gran Contribuyente?",            "gran_contribuyente"),
-        ("Entidad sin ánimo de lucro",         "entidad_sin_animo_lucro"),
-        ("Retención de Industria y Comercio",  "retencion_ica"),
-        ("Impuesto de Industria y Comercio",   "impuesto_ica"),
-        ("Entidad oficial",                    "entidad_oficial"),
-        ("Exento de Retención en la Fuente",   "exento_retencion_fuente"),
-    ]),
-    _SeccionCampos("Contactos — Persona autorizada para recepción de órdenes", [
-        ("Órdenes — Nombre",   "contacto_ordenes_nombre"),
-        ("Órdenes — Cargo",    "contacto_ordenes_cargo"),
-        ("Órdenes — Teléfono", "contacto_ordenes_telefono"),
-        ("Órdenes — Correo",   "contacto_ordenes_correo"),
-        ("Pagos — Nombre",     "contacto_pagos_nombre"),
-        ("Pagos — Cargo",      "contacto_pagos_cargo"),
-        ("Pagos — Teléfono",   "contacto_pagos_telefono"),
-        ("Pagos — Correo",     "contacto_pagos_correo"),
-    ]),
-    _SeccionTabla("Información Bancaria para Pagos", "informacion_bancaria_pagos", [
-        ("entidad_bancaria", "Banco"),
-        ("ciudad_oficina",   "Ciudad oficina"),
-        ("tipo_cuenta",      "Tipo cuenta"),
-        ("numero_cuenta",    "Número cuenta"),
-    ]),
-    _SeccionCampos("Autorizaciones y Origen de Fondos", [
-        ("Autorización tratamiento de datos", "autorizacion_datos"),
-        ("Declaración origen de fondos",      "declaracion_origen_fondos"),
-        ("Origen de fondos (detalle)",        "origen_fondos"),
-    ]),
-    _SeccionCampos("Firma", [
-        ("Nombre", "nombre_firma"),
-        ("Fecha",  "fecha_firma"),
-        ("Ciudad", "ciudad_firma"),
+    _PasoFormulario(8, "Declaraciones y Firma", [
+        _SeccionCampos("Autorizaciones y Origen de Fondos", [
+            ("Autorización tratamiento de datos", "autorizacion_datos"),
+            ("Declaración origen de fondos",      "declaracion_origen_fondos"),
+            ("Origen de fondos (detalle)",        "origen_fondos"),
+        ]),
+        _SeccionCampos("Firma", [
+            ("Nombre", "nombre_firma"),
+            ("Fecha",  "fecha_firma"),
+            ("Ciudad", "ciudad_firma"),
+        ]),
     ]),
 ]
 
@@ -363,6 +394,7 @@ def _construir_html_formulario(datos: Dict[str, Any]) -> str:
         "<div class='header'>"
         f"<div class='chip'>{escape(codigo)}</div>"
         "<h1>Formulario SAGRILAFT — Radicación</h1>"
+        "<h2> FORMULARIO DE VINCULACIÓN O ACTUALIZACIÓN DE CONTRAPARTE</h2>"
         f"<div class='sub'>Versión imprimible • Generado: {escape(ahora.strftime('%Y-%m-%d %H:%M %Z'))}</div>"
         "</div>"
     )
@@ -371,8 +403,23 @@ def _construir_html_formulario(datos: Dict[str, Any]) -> str:
         "Este documento es una representación imprimible del formulario registrado en el sistema."
         "</div>"
     )
-    secciones = [_renderizar_seccion(s, datos) for s in _SECCIONES_FORMULARIO]
-    contenido = "\n".join(p for p in [cabecera, *secciones, pie] if p)
+    bloques_pasos: List[str] = []
+    for paso in _PASOS_FORMULARIO:
+        secciones_html = [
+            html for s in paso.secciones
+            if (html := _renderizar_seccion(s, datos))
+        ]
+        if not secciones_html:
+            continue
+        clase = "paso-primero" if not bloques_pasos else "paso"
+        bloque = (
+            f"<div class='{clase}'>"
+            f"<h3 class='paso-titulo'>Paso {paso.numero} — {escape(paso.titulo)}</h3>"
+            + "\n".join(secciones_html)
+            + "</div>"
+        )
+        bloques_pasos.append(bloque)
+    contenido = "\n".join(p for p in [cabecera, *bloques_pasos, pie] if p)
     return (
         f"<!doctype html><html>"
         f"<head><meta charset='utf-8'><style>{_CSS_BASE}</style></head>"
