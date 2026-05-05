@@ -45,7 +45,7 @@ class ContraparteInvalidaError(Exception):
             f"Tipo de contraparte no reconocido: '{tipo_contraparte}'. "
             "Valores válidos: 'cliente', 'proveedor'."
         )
-                                                                                                                    
+
 
 class CredencialesAccesoInvalidasError(Exception):
     """
@@ -82,6 +82,19 @@ class TokenConsumidoError(Exception):
         super().__init__("Este formulario ya fue completado y no puede ser modificado.")
 
 
+class FirmaNoDisponibleError(Exception):
+    """
+    El documento firmado no está disponible: el formulario no ha sido firmado
+    o el archivo no existe en disco.
+    """
+
+    def __init__(self, formulario_id: str) -> None:
+        self.formulario_id = formulario_id
+        super().__init__(
+            f"El documento firmado del formulario '{formulario_id}' no está disponible."
+        )
+
+
 class AccesoExpiradoError(Exception):
     """
     Excepcion de dominio: el AccesoManual superó su fecha de vigencia.
@@ -93,3 +106,16 @@ class AccesoExpiradoError(Exception):
 
     def __init__(self) -> None:
         super().__init__("El acceso ha expirado. Solicite un nuevo enlace al área responsable.")
+
+
+class WebhookTokenInvalidoError(Exception):
+    """
+    El secret_token recibido en el webhook de ZohoSign no coincide con el configurado.
+
+    Usar esta excepción en lugar de PermissionError (built-in de Python para errores
+    de sistema de archivos) evita que errores reales de permisos en disco sean
+    silenciosamente capturados como HTTP 403.
+    """
+
+    def __init__(self) -> None:
+        super().__init__("Token de webhook inválido.")

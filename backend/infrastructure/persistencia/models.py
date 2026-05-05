@@ -11,10 +11,12 @@ import enum
 
 
 class EstadoFormulario(str, enum.Enum):
-    BORRADOR = "borrador"
-    ENVIADO = "enviado"
-    VALIDADO = "validado"
-    RECHAZADO = "rechazado"
+    BORRADOR        = "borrador"
+    ENVIADO         = "enviado"
+    VALIDADO        = "validado"
+    RECHAZADO       = "rechazado"
+    PENDIENTE_FIRMA = "pendiente_firma"
+    FIRMADO         = "firmado"
 
 
 class TipoPersona(str, enum.Enum):
@@ -234,6 +236,10 @@ class Formulario(Base):
     fecha_firma = Column(String, nullable=True)
     ciudad_firma = Column(String, nullable=True)
     nombre_firma = Column(String, nullable=True)
+
+    # --- ZohoSign ---
+    zoho_request_id        = Column(String, nullable=True)
+    ruta_documento_firmado = Column(String, nullable=True)
 
     # --- Datos dinámicos (JSON) ---
     junta_directiva = Column(Text, nullable=True)              # JSON array
