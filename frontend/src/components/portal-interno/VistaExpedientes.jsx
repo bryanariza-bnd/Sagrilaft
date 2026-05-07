@@ -70,7 +70,6 @@ const s = {
     lineHeight: 1,
   }),
   // Barra de búsqueda y filtros
-  barraFiltros: estilosBandeja.barraFiltros,
   inputBusqueda: {
     flex:         1,
     minWidth:     '160px',
@@ -81,7 +80,6 @@ const s = {
     color:        'var(--gray-800, #1e293b)',
     outline:      'none',
   },
-  selectFiltro: estilosBandeja.selectFiltro,
   // Tarjetas de expedientes
   tarjeta: {
     background:    '#fff',
@@ -137,10 +135,6 @@ const s = {
     padding:      '2px 9px',
     whiteSpace:   'nowrap',
   }),
-  // Estados de la lista
-  estadoVacio: estilosBandeja.estadoVacio,
-  spinner: estilosBandeja.spinner,
-  errorCarga: estilosBandeja.errorCarga,
 };
 
 // ── Sub-componentes ───────────────────────────────────────────────────────────

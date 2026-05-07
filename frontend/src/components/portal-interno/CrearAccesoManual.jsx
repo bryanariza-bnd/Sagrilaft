@@ -25,6 +25,7 @@ import {
   formatearFechaLarga,
   ETIQUETA_TIPO_CONTRAPARTE,
 } from './constantes';
+import { REGEX_CORREO } from '../../utils/constantes';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -124,10 +125,10 @@ const s = {
     boxSizing: 'border-box',
   },
   inputFocus: {
-    borderColor: 'var(--primary-500, #3b82f6)',
+    border: '1.5px solid var(--primary-500, #3b82f6)',
   },
   inputError: {
-    borderColor: 'var(--error, #ef4444)',
+    border: '1.5px solid var(--error, #ef4444)',
   },
   inputReadonly: {
     background: 'var(--gray-50, #f8fafc)',
@@ -311,8 +312,7 @@ function validarCamposAcceso(formData) {
   if (!formData.correo_destinatario.trim()) errores.correo_destinatario = 'Ingrese el correo del destinatario';
   if (!formData.area_responsable)          errores.area_responsable    = 'Seleccione el área responsable';
 
-  const correoRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-  if (formData.correo_destinatario && !correoRegex.test(formData.correo_destinatario)) {
+  if (formData.correo_destinatario && !REGEX_CORREO.test(formData.correo_destinatario)) {
     errores.correo_destinatario = 'Formato de correo inválido';
   }
   return errores;
