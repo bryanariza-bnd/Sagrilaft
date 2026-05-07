@@ -48,5 +48,5 @@ export const CAMPOS_REQUERIDOS = {
     'contacto_ordenes_nombre', 'contacto_ordenes_cargo', 'contacto_ordenes_telefono', 'contacto_ordenes_correo',
     'contacto_pagos_nombre',   'contacto_pagos_cargo',   'contacto_pagos_telefono',   'contacto_pagos_correo',
   ],
-  8: ['origen_fondos', 'fecha_firma', 'ciudad_firma'],
+  8: ['origen_fondos', 'dia_firma', 'mes_firma', 'year_firma', 'ciudad_firma'],
 };

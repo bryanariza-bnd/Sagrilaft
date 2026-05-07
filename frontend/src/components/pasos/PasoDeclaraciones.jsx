@@ -1,9 +1,7 @@
 import FormField from '../FormField';
+import { HR } from '../TablaFormComponents';
+import FirmaRepresentanteLegal from '../FirmaRepresentanteLegal';
 import { RAZON_SOCIAL_EMPRESA, CORREO_DATOS_PERSONALES } from '../../config/textos-legales';
-
-const HR = () => (
-  <hr style={{ border: 'none', borderTop: '1px solid var(--gray-200)', margin: '24px 0' }} />
-);
 
 /**
  * Paso 7 — Autorizaciones, Declaración de Origen de Fondos y Firma.
@@ -77,29 +75,12 @@ export default function PasoDeclaraciones({ formData, onChange, onOpenHelp, erro
 
       <HR />
 
-      {/* Firma */}
-      <h3 style={{ fontSize: '0.95rem', fontWeight: '600', color: 'var(--gray-800)', marginBottom: '12px' }}>
-        Firma del Representante Legal
-      </h3>
-      <div className="form-row">
-        <FormField
-          label="Nombre del Representante Legal" name="nombre_firma" required
-          value={formData.nombre_firma} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.nombre_firma}
-        />
-        <FormField
-          label="Fecha" name="fecha_firma" type="date" required
-          value={formData.fecha_firma} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.fecha_firma}
-        />
-      </div>
-      <div className="form-row">
-        <FormField
-          label="Ciudad" name="ciudad_firma" required
-          value={formData.ciudad_firma} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.ciudad_firma}
-        />
-      </div>
+      <FirmaRepresentanteLegal
+        formData={formData}
+        onChange={onChange}
+        onOpenHelp={onOpenHelp}
+        errors={errors}
+      />
     </div>
   );
 }
