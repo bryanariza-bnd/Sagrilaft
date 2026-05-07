@@ -23,8 +23,8 @@ from infrastructure.persistencia.models import (
 )
 from services.formulario.validacion_envio import (
     ErrorValidacion,
-    _limpiar_numero_id_si_tipo_ausente,
-    _limpiar_vinculos_pep_si_no_es_pep,
+    limpiar_numero_id_si_tipo_ausente,
+    limpiar_vinculos_pep_si_no_es_pep,
 )
 
 from .comunes import (
@@ -62,8 +62,8 @@ class PersonaVinculadaBase(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validar_dependencias(cls, data: Any) -> Any:
-        data = _limpiar_numero_id_si_tipo_ausente(data)
-        data = _limpiar_vinculos_pep_si_no_es_pep(data)
+        data = limpiar_numero_id_si_tipo_ausente(data)
+        data = limpiar_vinculos_pep_si_no_es_pep(data)
         return data
 
 

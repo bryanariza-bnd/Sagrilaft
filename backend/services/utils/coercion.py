@@ -1,6 +1,12 @@
 
 from services.formulario.validacion_envio import PORCENTAJE_MAXIMO_PERMITIDO
 
+
+def vacio_a_nulo(v: object) -> object:
+    """Coerciona strings vacíos a None pre-validación. Imprescindible para borradores."""
+    return None if v == "" else v
+
+
 def coercionar_monto(v: object) -> float | None:
     """
     Coerciona un valor de entrada (str o float) a float no negativo.

@@ -15,12 +15,7 @@ UMBRAL_MINIMO_PARTICIPACION_ACCIONISTA   = 5
 UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL = 25
 PORCENTAJE_MAXIMO_PERMITIDO = 100
 
-def _vacio_a_nulo(v: Any) -> Any:
-    """Coerciona strings vacíos a None pre-validación. Imprescindible para borradores."""
-    return None if v == "" else v
-
-
-def _limpiar_numero_id_si_tipo_ausente(data: Any) -> Any:
+def limpiar_numero_id_si_tipo_ausente(data: Any) -> Any:
     """
     Garantiza que numero_id sea nulo cuando tipo_id no está definido.
 
@@ -33,7 +28,7 @@ def _limpiar_numero_id_si_tipo_ausente(data: Any) -> Any:
     return data
 
 
-def _limpiar_vinculos_pep_si_no_es_pep(data: Any) -> Any:
+def limpiar_vinculos_pep_si_no_es_pep(data: Any) -> Any:
     """
     Garantiza que vinculos_pep sea 'NA' cuando es_pep es 'no'.
     Consistencia con el frontend para campos dependientes.

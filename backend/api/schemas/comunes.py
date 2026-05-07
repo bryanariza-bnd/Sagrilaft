@@ -12,22 +12,22 @@ from typing import Annotated, Optional, TypeVar, Literal
 
 from pydantic import BeforeValidator
 
-from services.formulario.validacion_envio import _vacio_a_nulo
 from services.utils.coercion import (
     coercionar_monto,
     coercionar_porcentaje,
     coercionar_porcentaje_participacion,
+    vacio_a_nulo,
 )
 from core.fechas import a_iso_utc_z
 
 T = TypeVar("T")
 
 
-EnumLimpio = Annotated[Optional[T], BeforeValidator(_vacio_a_nulo)]
+EnumLimpio = Annotated[Optional[T], BeforeValidator(vacio_a_nulo)]
 
 # Literales para estandarización estricta de Dropdowns fijos (sin enums complejos)
-DropdownSiNo = Annotated[Literal["si", "no"] | None, BeforeValidator(_vacio_a_nulo)]
-DropdownTipoId = Annotated[Literal["NIT", "CC", "CE", "PAS"] | None, BeforeValidator(_vacio_a_nulo)]
+DropdownSiNo = Annotated[Literal["si", "no"] | None, BeforeValidator(vacio_a_nulo)]
+DropdownTipoId = Annotated[Literal["NIT", "CC", "CE", "PAS"] | None, BeforeValidator(vacio_a_nulo)]
 
 # Tipos reutilizables en cualquier schema que maneje montos o porcentajes
 MontoPositivo = Annotated[Optional[float], BeforeValidator(coercionar_monto)]
