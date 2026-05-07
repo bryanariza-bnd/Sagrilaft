@@ -10,13 +10,8 @@ from api.schemas import DocumentoResponse
 from infrastructure.persistencia.models import Formulario
 
 
-# Campos que se almacenan como JSON string en la BD
-_CAMPOS_JSON_ESCRITURA: List[str] = [
-    "junta_directiva", "accionistas", "beneficiario_final",
-    "referencias_comerciales", "referencias_bancarias", "informacion_bancaria_pagos", "clasificaciones",
-    "tipos_transaccion",
-]
-_CAMPOS_JSON_LECTURA: List[str] = [
+# Campos que se almacenan como JSON string en la BD (aplica igual a lectura y escritura)
+_CAMPOS_JSON: List[str] = [
     "junta_directiva", "accionistas", "beneficiario_final",
     "referencias_comerciales", "referencias_bancarias", "informacion_bancaria_pagos", "clasificaciones",
     "tipos_transaccion",
@@ -35,7 +30,7 @@ def serializar_campos_json(datos: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         El mismo diccionario con los campos complejos convertidos a JSON string.
     """
-    for campo in _CAMPOS_JSON_ESCRITURA:
+    for campo in _CAMPOS_JSON:
         valor = datos.get(campo)
         if valor is None or not isinstance(valor, (list, dict)):
             continue
@@ -102,7 +97,7 @@ def deserializar_campos_json(formulario: Formulario) -> Dict[str, Any]:
         columna.name: getattr(formulario, columna.name)
         for columna in formulario.__table__.columns
     }
-    for campo in _CAMPOS_JSON_LECTURA:
+    for campo in _CAMPOS_JSON:
         valor = datos.get(campo)
         if valor is None:
             continue
