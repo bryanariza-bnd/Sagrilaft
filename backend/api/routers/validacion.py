@@ -18,7 +18,7 @@ from infrastructure.dependencies import obtener_orquestador, obtener_servicio_li
 from api.schemas import ValidacionResponse
 from services.orquestacion.orquestador_documentos import OrquestadorValidacionDocumentos
 from services.listas.servicio_listas_cautela import ListaCautelaService
-from services.validacion_service import ValidacionService
+from services.validacion.validacion_service import ValidacionService
 
 enrutador = APIRouter(prefix="/api/validar", tags=["validación"])
 
