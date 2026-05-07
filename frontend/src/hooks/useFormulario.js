@@ -273,134 +273,47 @@ export function useFormulario() {
     }
   };
 
-  // ── Handlers de tablas (limpian errores del paso 4 al editar) ────────────
-
-  const _limpiarErroresPaso4 = useCallback(() => {
+  // ── Limpieza genérica de errores de tablas ──────────────────────────────────
+  const limpiarClavesError = useCallback((claves) => {
     aplicarErrores(prev => {
-      const sinTablas = { ...prev };
-      for (const clave of CLAVES_ERROR_PASO4) delete sinTablas[clave];
-      return sinTablas;
+      const limpio = { ...prev };
+      for (const clave of claves) delete limpio[clave];
+      return limpio;
     });
   }, [aplicarErrores]);
 
-  const onJuntaChange = useCallback((...args) => {
-    handleJuntaChange(...args);
-    _limpiarErroresPaso4();
-  }, [handleJuntaChange, _limpiarErroresPaso4]);
-
-  const onJuntaTipoIdChange = useCallback((index, nuevoTipo) => {
-    handleJuntaTipoIdChange(index, nuevoTipo);
-    _limpiarErroresPaso4();
-  }, [handleJuntaTipoIdChange, _limpiarErroresPaso4]);
-
-  const onAccionistaChange = useCallback((...args) => {
-    handleAccionistaChange(...args);
-    _limpiarErroresPaso4();
-  }, [handleAccionistaChange, _limpiarErroresPaso4]);
-
-  const onAccionistaTipoIdChange = useCallback((index, nuevoTipo) => {
-    handleAccionistaTipoIdChange(index, nuevoTipo);
-    _limpiarErroresPaso4();
-  }, [handleAccionistaTipoIdChange, _limpiarErroresPaso4]);
-
-  const onBeneficiarioChange = useCallback((...args) => {
-    handleBeneficiarioChange(...args);
-    _limpiarErroresPaso4();
-  }, [handleBeneficiarioChange, _limpiarErroresPaso4]);
-
-  const onBeneficiarioTipoIdChange = useCallback((index, nuevoTipo) => {
-    handleBeneficiarioTipoIdChange(index, nuevoTipo);
-    _limpiarErroresPaso4();
-  }, [handleBeneficiarioTipoIdChange, _limpiarErroresPaso4]);
-
-  const onEliminarJuntaMember = useCallback((index) => {
-    eliminarJuntaMember(index);
-    _limpiarErroresPaso4();
-  }, [eliminarJuntaMember, _limpiarErroresPaso4]);
-
-  const onEliminarAccionista = useCallback((index) => {
-    eliminarAccionista(index);
-    _limpiarErroresPaso4();
-  }, [eliminarAccionista, _limpiarErroresPaso4]);
-
-  const onEliminarBeneficiario = useCallback((index) => {
-    eliminarBeneficiario(index);
-    _limpiarErroresPaso4();
-  }, [eliminarBeneficiario, _limpiarErroresPaso4]);
-
-  // ── Handlers de tablas (limpian errores del paso 6 al editar) ────────────
-
-  const _limpiarErroresPaso6 = useCallback(() => {
-    aplicarErrores(prev => {
-      const sinTablas = { ...prev };
-      for (const clave of CLAVES_ERROR_PASO6) delete sinTablas[clave];
-      return sinTablas;
-    });
-  }, [aplicarErrores]);
-
-  const onReferenciaChange = useCallback((...args) => {
-    handleReferenciaChange(...args);
-    _limpiarErroresPaso6();
-  }, [handleReferenciaChange, _limpiarErroresPaso6]);
-
-  const onReferenciaBancariaChange = useCallback((...args) => {
-    handleReferenciaBancariaChange(...args);
-    _limpiarErroresPaso6();
-  }, [handleReferenciaBancariaChange, _limpiarErroresPaso6]);
-
-  const onEliminarReferencia = useCallback((index) => {
-    eliminarReferencia(index);
-    _limpiarErroresPaso6();
-  }, [eliminarReferencia, _limpiarErroresPaso6]);
-
-  const onEliminarReferenciaBancaria = useCallback((index) => {
-    eliminarReferenciaBancaria(index);
-    _limpiarErroresPaso6();
-  }, [eliminarReferenciaBancaria, _limpiarErroresPaso6]);
-
-  // ── Handlers de tablas (limpian errores del paso 7 al editar) ────────────
-
-  const _limpiarErroresPaso7 = useCallback(() => {
-    aplicarErrores(prev => {
-      const sinTablas = { ...prev };
-      for (const clave of CLAVES_ERROR_PASO7) delete sinTablas[clave];
-      return sinTablas;
-    });
-  }, [aplicarErrores]);
-
-  const onInfoBancariaPagosChange = useCallback((...args) => {
-    handleInfoBancariaPagosChange(...args);
-    _limpiarErroresPaso7();
-  }, [handleInfoBancariaPagosChange, _limpiarErroresPaso7]);
-
-  const onEliminarInfoBancariaPagos = useCallback((index) => {
-    eliminarInfoBancariaPagos(index);
-    _limpiarErroresPaso7();
-  }, [eliminarInfoBancariaPagos, _limpiarErroresPaso7]);
+  // ── Handlers de tablas con limpieza de errores ──────────────────────────────
+  const onJuntaChange              = useCallback((...args)   => { handleJuntaChange(...args);              limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleJuntaChange,              limpiarClavesError]);
+  const onJuntaTipoIdChange        = useCallback((idx, tipo) => { handleJuntaTipoIdChange(idx, tipo);      limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleJuntaTipoIdChange,        limpiarClavesError]);
+  const onAccionistaChange         = useCallback((...args)   => { handleAccionistaChange(...args);         limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleAccionistaChange,         limpiarClavesError]);
+  const onAccionistaTipoIdChange   = useCallback((idx, tipo) => { handleAccionistaTipoIdChange(idx, tipo); limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleAccionistaTipoIdChange,   limpiarClavesError]);
+  const onBeneficiarioChange       = useCallback((...args)   => { handleBeneficiarioChange(...args);       limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleBeneficiarioChange,       limpiarClavesError]);
+  const onBeneficiarioTipoIdChange = useCallback((idx, tipo) => { handleBeneficiarioTipoIdChange(idx, tipo); limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleBeneficiarioTipoIdChange, limpiarClavesError]);
+  const onEliminarJuntaMember      = useCallback((idx)       => { eliminarJuntaMember(idx);                limpiarClavesError(CLAVES_ERROR_PASO4); }, [eliminarJuntaMember,            limpiarClavesError]);
+  const onEliminarAccionista       = useCallback((idx)       => { eliminarAccionista(idx);                 limpiarClavesError(CLAVES_ERROR_PASO4); }, [eliminarAccionista,             limpiarClavesError]);
+  const onEliminarBeneficiario     = useCallback((idx)       => { eliminarBeneficiario(idx);               limpiarClavesError(CLAVES_ERROR_PASO4); }, [eliminarBeneficiario,           limpiarClavesError]);
+  const onReferenciaChange         = useCallback((...args)   => { handleReferenciaChange(...args);         limpiarClavesError(CLAVES_ERROR_PASO6); }, [handleReferenciaChange,         limpiarClavesError]);
+  const onReferenciaBancariaChange = useCallback((...args)   => { handleReferenciaBancariaChange(...args); limpiarClavesError(CLAVES_ERROR_PASO6); }, [handleReferenciaBancariaChange, limpiarClavesError]);
+  const onEliminarReferencia       = useCallback((idx)       => { eliminarReferencia(idx);                 limpiarClavesError(CLAVES_ERROR_PASO6); }, [eliminarReferencia,             limpiarClavesError]);
+  const onEliminarReferenciaBancaria = useCallback((idx)     => { eliminarReferenciaBancaria(idx);         limpiarClavesError(CLAVES_ERROR_PASO6); }, [eliminarReferenciaBancaria,     limpiarClavesError]);
+  const onInfoBancariaPagosChange  = useCallback((...args)   => { handleInfoBancariaPagosChange(...args);  limpiarClavesError(CLAVES_ERROR_PASO7); }, [handleInfoBancariaPagosChange,  limpiarClavesError]);
+  const onEliminarInfoBancariaPagos = useCallback((idx)      => { eliminarInfoBancariaPagos(idx);          limpiarClavesError(CLAVES_ERROR_PASO7); }, [eliminarInfoBancariaPagos,      limpiarClavesError]);
 
   // ── Navegación ───────────────────────────────────────────────────────────
 
   const handleNext = () => {
     const newErrors = validarPaso(step);
-    if (step === 1 && alertasRazonSocial.length > 0) {
-      newErrors._inconsistencias_nombre =
-        'Corrige la razón social en el formulario o reemplaza el archivo adjunto para que los nombres coincidan.';
-    }
-    if (step === 1 && alertasNit.length > 0) {
-      newErrors._inconsistencias_nit =
-        'Corrige el NIT en el formulario o reemplaza el archivo adjunto para que los NITs coincidan.';
-    }
-    if (step === 1 && alertasNombreRepresentante.length > 0) {
-      newErrors._inconsistencias_nombre_representante =
-        'Corrige el nombre del representante en el formulario o reemplaza el archivo adjunto para que los nombres coincidan.';
-    }
-    if (step === 1 && alertasNumeroDocRepresentante.length > 0) {
-      newErrors._inconsistencias_numero_doc_representante =
-        'Corrige el No. de Identificación del representante en el formulario o reemplaza el archivo adjunto para que los números coincidan.';
-    }
-    if (step === 1 && alertasDireccion.length > 0) {
-      newErrors._inconsistencias_direccion =
-        'Corrige la dirección en el formulario o reemplaza el archivo adjunto para que las direcciones coincidan.';
+    if (step === 1) {
+      const alertasPaso1 = [
+        { alertas: alertasRazonSocial,            clave: '_inconsistencias_nombre',                   mensaje: 'Corrige la razón social en el formulario o reemplaza el archivo adjunto para que los nombres coincidan.' },
+        { alertas: alertasNit,                    clave: '_inconsistencias_nit',                      mensaje: 'Corrige el NIT en el formulario o reemplaza el archivo adjunto para que los NITs coincidan.' },
+        { alertas: alertasNombreRepresentante,    clave: '_inconsistencias_nombre_representante',     mensaje: 'Corrige el nombre del representante en el formulario o reemplaza el archivo adjunto para que los nombres coincidan.' },
+        { alertas: alertasNumeroDocRepresentante, clave: '_inconsistencias_numero_doc_representante', mensaje: 'Corrige el No. de Identificación del representante en el formulario o reemplaza el archivo adjunto para que los números coincidan.' },
+        { alertas: alertasDireccion,              clave: '_inconsistencias_direccion',                mensaje: 'Corrige la dirección en el formulario o reemplaza el archivo adjunto para que las direcciones coincidan.' },
+      ];
+      for (const { alertas, clave, mensaje } of alertasPaso1) {
+        if (alertas.length > 0) newErrors[clave] = mensaje;
+      }
     }
     if (step === 4) {
       Object.assign(newErrors, validarTablasPaso4({
