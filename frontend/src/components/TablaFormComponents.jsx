@@ -5,6 +5,8 @@
  * ISP : cada tabla importa solo los primitivos que necesita.
  * OCP : nuevos primitivos se agregan aquí sin tocar los consumidores existentes.
  */
+import { getIdPropsByTipoDocumento, sanitizeIdValue } from '../utils/inputValidation';
+import { LONGITUD_MAXIMA_ID } from '../utils/constantes';
 
 export const ESTILO_CELDA_ERROR = { borderColor: 'var(--error, #e53e3e)' };
 
@@ -41,3 +43,60 @@ export const MensajeError = ({ msg }) =>
       {msg}
     </span>
   ) : null;
+
+const OPCIONES_PEP = [
+  { value: 'si', label: 'Sí' },
+  { value: 'no', label: 'No' },
+];
+
+export function CeldaPEP({ item, err, onChange }) {
+  return (
+    <>
+      <td>
+        <select
+          value={item.es_pep || ''}
+          onChange={(e) => onChange('es_pep', e.target.value)}
+          style={err.es_pep ? ESTILO_CELDA_ERROR : undefined}
+        >
+          <option value="">-</option>
+          {OPCIONES_PEP.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </td>
+      <td>
+        <input
+          value={item.vinculos_pep || ''} placeholder="Describa:"
+          onChange={(e) => onChange('vinculos_pep', e.target.value)}
+          disabled={item.es_pep === 'no'}
+          style={err.vinculos_pep ? ESTILO_CELDA_ERROR : undefined}
+        />
+      </td>
+    </>
+  );
+}
+
+export function CeldaIdentificacion({ item, err, tiposId, onTipoChange, onNumeroChange }) {
+  return (
+    <>
+      <td>
+        <select
+          value={item.tipo_id || ''}
+          onChange={(e) => onTipoChange(e.target.value)}
+          style={err.tipo_id ? ESTILO_CELDA_ERROR : undefined}
+        >
+          <option value="">-</option>
+          {tiposId.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </td>
+      <td>
+        <input
+          value={item.numero_id || ''} placeholder="Número"
+          onChange={(e) => onNumeroChange(sanitizeIdValue(e.target.value, item.tipo_id))}
+          {...getIdPropsByTipoDocumento(item.tipo_id)}
+          maxLength={LONGITUD_MAXIMA_ID}
+          disabled={!item.tipo_id}
+          style={err.numero_id ? ESTILO_CELDA_ERROR : undefined}
+        />
+      </td>
+    </>
+  );
+}

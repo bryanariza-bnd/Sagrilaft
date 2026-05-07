@@ -2,16 +2,14 @@ import { CARGOS_JUNTA_DIRECTIVA } from '../../data/formularioConfig';
 import {
   onlyTextKeyDown, onlyTextPaste,
   onlyAlphanumericKeyDown, onlyAlphanumericPaste,
-  getIdPropsByTipoDocumento, sanitizeIdValue,
   onPorcentajeKeyDown, onPorcentajePaste,
 } from '../../utils/inputValidation';
 import {
   UMBRAL_MINIMO_PARTICIPACION_ACCIONISTA,
   UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL,
   PORCENTAJE_MAXIMO_PERMITIDO,
-  LONGITUD_MAXIMA_ID,
 } from '../../utils/constantes';
-import { HR, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR } from '../TablaFormComponents';
+import { HR, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, CeldaPEP, CeldaIdentificacion } from '../TablaFormComponents';
 
 const TIPOS_ID_JUNTA = [
   { value: 'CC',  label: 'CC'  },
@@ -26,21 +24,10 @@ const TIPOS_ID_ACCIONISTA = [
   { value: 'PAS', label: 'PAS' },
 ];
 
-const OPCIONES_PEP = [
-  { value: 'si', label: 'Sí' },
-  { value: 'no', label: 'No' },
-];
-
 /**
  * Paso 4 — Junta Directiva y Composición Accionaria.
  * Solo aplica a Persona Jurídica; muestra mensaje alternativo para Natural.
  */
-const TIPOS_ID_BENEFICIARIO = [
-  { value: 'CC',  label: 'CC'  },
-  { value: 'CE',  label: 'CE'  },
-  { value: 'PAS', label: 'PAS' },
-];
-
 export default function PasoJuntaAccionistas({
   formData,
   errors = {},
@@ -51,6 +38,7 @@ export default function PasoJuntaAccionistas({
   const erroresFilasJunta = errors.junta_directiva_filas ?? [];
   const erroresFilasAcc   = errors.accionistas_filas     ?? [];
   const erroresFilasBen   = errors.beneficiarios_filas   ?? [];
+
   if (formData.tipo_persona === 'natural') {
     return (
       <div className="form-card" style={{ textAlign: 'center', padding: '40px' }}>
@@ -66,11 +54,11 @@ export default function PasoJuntaAccionistas({
       <h2 className="section-title">INFORMACIÓN JUNTA DIRECTIVA, REPRESENTANTES LEGALES Y REVISORES FISCALES</h2>
       <p className="section-subtitle">Registrar los datos de las personas que conforman la Junta Directiva Principal, Junta Directiva suplente y Revisores Fiscales, que se encuentran registradas en Cámara de Comercio.</p>
       <p className="section-subtitle">Para responder las preguntas respecto a PEP´s, tenga en cuenta que corresponden a personas expuestas políticamente o públicamente que: Manejan recursos públicos, tienen algún grado de poder público o gozan dereconocimiento público.</p>
-      {/* Junta Directiva */}
+
+      {/* ── Junta Directiva ─────────────────────────────────────────────────── */}
       <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--gray-800)', marginBottom: '12px' }}>
         Junta Directiva y Representantes
       </h3>
-
       <div className="info-box">
         <p> PEP: Persona Expuesta Políticamente — persona que maneja recursos públicos, tiene poder público o reconocimiento público.</p>
         <p> ¿Vínculos con PEP? Si es asi, describa, de lo contrario colocar No.</p>
@@ -78,7 +66,6 @@ export default function PasoJuntaAccionistas({
       {errors.junta_directiva_tabla && (
         <div className="field-error" style={{ marginBottom: '8px' }}>{errors.junta_directiva_tabla}</div>
       )}
-
       <div className="data-table-container">
         <table className="data-table">
           <thead>
@@ -111,54 +98,15 @@ export default function PasoJuntaAccionistas({
                       style={err.nombre ? ESTILO_CELDA_ERROR : undefined}
                     />
                   </td>
-                  <td>
-                    <select
-                      value={miembro.tipo_id || ''}
-                      onChange={(e) => onJuntaTipoIdChange(idx, e.target.value)}
-                      style={err.tipo_id ? ESTILO_CELDA_ERROR : undefined}
-                    >
-                      <option value="">-</option>
-                      {TIPOS_ID_JUNTA.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      value={miembro.numero_id || ''} placeholder="Número"
-                      onChange={(e) => onJuntaChange(idx, 'numero_id', sanitizeIdValue(e.target.value, miembro.tipo_id))}
-                      {...getIdPropsByTipoDocumento(miembro.tipo_id)}
-                      maxLength={LONGITUD_MAXIMA_ID}
-                      disabled={!miembro.tipo_id}
-                      style={err.numero_id ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={miembro.es_pep || ''}
-                      onChange={(e) => onJuntaChange(idx, 'es_pep', e.target.value)}
-                      style={err.es_pep ? ESTILO_CELDA_ERROR : undefined}
-                    >
-                      <option value="">-</option>
-                      {OPCIONES_PEP.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      value={miembro.vinculos_pep || ''} placeholder="Describa:"
-                      onChange={(e) => onJuntaChange(idx, 'vinculos_pep', e.target.value)}
-                      disabled={miembro.es_pep === 'no'}
-                      style={err.vinculos_pep ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                  </td>
+                  <CeldaIdentificacion
+                    item={miembro} err={err} tiposId={TIPOS_ID_JUNTA}
+                    onTipoChange={(tipo) => onJuntaTipoIdChange(idx, tipo)}
+                    onNumeroChange={(val) => onJuntaChange(idx, 'numero_id', val)}
+                  />
+                  <CeldaPEP item={miembro} err={err} onChange={(campo, val) => onJuntaChange(idx, campo, val)} />
                   {juntaDirectiva.length > 1 && (
                     <td>
-                      <button
-                        type="button"
-                        onClick={() => onEliminarJuntaMember(idx)}
-                        style={ESTILO_BTN_ELIMINAR}
-                        title="Eliminar miembro"
-                      >
-                        ×
-                      </button>
+                      <button type="button" onClick={() => onEliminarJuntaMember(idx)} style={ESTILO_BTN_ELIMINAR} title="Eliminar miembro">×</button>
                     </td>
                   )}
                 </tr>
@@ -173,7 +121,7 @@ export default function PasoJuntaAccionistas({
 
       <HR />
 
-      {/* Composición Accionaria */}
+      {/* ── Composición Accionaria ───────────────────────────────────────────── */}
       <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--gray-800)', marginBottom: '12px' }}>
         Composición Accionaria
       </h3>
@@ -216,62 +164,22 @@ export default function PasoJuntaAccionistas({
                       max={PORCENTAJE_MAXIMO_PERMITIDO - 0.01}
                       value={acc.porcentaje || ''} placeholder="%"
                       onChange={(e) => onAccionistaChange(idx, 'porcentaje', e.target.value)}
-                      onKeyDown={onPorcentajeKeyDown}
-                      onPaste={onPorcentajePaste}
+                      onKeyDown={onPorcentajeKeyDown} onPaste={onPorcentajePaste}
                       style={err.porcentaje ? ESTILO_CELDA_ERROR : undefined}
                     />
                     {err.porcentaje && (
                       <span style={{ color: 'var(--error, #e53e3e)', fontSize: '0.75rem', display: 'block' }}>{err.porcentaje}</span>
                     )}
                   </td>
-                  <td>
-                    <select
-                      value={acc.tipo_id || ''}
-                      onChange={(e) => onAccionistaTipoIdChange(idx, e.target.value)}
-                      style={err.tipo_id ? ESTILO_CELDA_ERROR : undefined}
-                    >
-                      <option value="">-</option>
-                      {TIPOS_ID_ACCIONISTA.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      value={acc.numero_id || ''} placeholder="Número"
-                      onChange={(e) => onAccionistaChange(idx, 'numero_id', sanitizeIdValue(e.target.value, acc.tipo_id))}
-                      {...getIdPropsByTipoDocumento(acc.tipo_id)}
-                      maxLength={LONGITUD_MAXIMA_ID}
-                      disabled={!acc.tipo_id}
-                      style={err.numero_id ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={acc.es_pep || ''}
-                      onChange={(e) => onAccionistaChange(idx, 'es_pep', e.target.value)}
-                      style={err.es_pep ? ESTILO_CELDA_ERROR : undefined}
-                    >
-                      <option value="">-</option>
-                      {OPCIONES_PEP.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      value={acc.vinculos_pep || ''} placeholder="Describa:"
-                      onChange={(e) => onAccionistaChange(idx, 'vinculos_pep', e.target.value)}
-                      disabled={acc.es_pep === 'no'}
-                      style={err.vinculos_pep ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                  </td>
+                  <CeldaIdentificacion
+                    item={acc} err={err} tiposId={TIPOS_ID_ACCIONISTA}
+                    onTipoChange={(tipo) => onAccionistaTipoIdChange(idx, tipo)}
+                    onNumeroChange={(val) => onAccionistaChange(idx, 'numero_id', val)}
+                  />
+                  <CeldaPEP item={acc} err={err} onChange={(campo, val) => onAccionistaChange(idx, campo, val)} />
                   {accionistas.length > 1 && (
                     <td>
-                      <button
-                        type="button"
-                        onClick={() => onEliminarAccionista(idx)}
-                        style={ESTILO_BTN_ELIMINAR}
-                        title="Eliminar accionista"
-                      >
-                        ×
-                      </button>
+                      <button type="button" onClick={() => onEliminarAccionista(idx)} style={ESTILO_BTN_ELIMINAR} title="Eliminar accionista">×</button>
                     </td>
                   )}
                 </tr>
@@ -286,7 +194,7 @@ export default function PasoJuntaAccionistas({
 
       <HR />
 
-      {/* Beneficiario Final */}
+      {/* ── Beneficiario Final ───────────────────────────────────────────────── */}
       <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--gray-800)', marginBottom: '12px' }}>
         Beneficiario Final
       </h3>
@@ -328,62 +236,22 @@ export default function PasoJuntaAccionistas({
                       max={PORCENTAJE_MAXIMO_PERMITIDO - 0.01}
                       value={ben.porcentaje || ''} placeholder="%"
                       onChange={(e) => onBeneficiarioChange(idx, 'porcentaje', e.target.value)}
-                      onKeyDown={onPorcentajeKeyDown}
-                      onPaste={onPorcentajePaste}
+                      onKeyDown={onPorcentajeKeyDown} onPaste={onPorcentajePaste}
                       style={err.porcentaje ? ESTILO_CELDA_ERROR : undefined}
                     />
                     {err.porcentaje && (
                       <span style={{ color: 'var(--error, #e53e3e)', fontSize: '0.75rem', display: 'block' }}>{err.porcentaje}</span>
                     )}
                   </td>
-                  <td>
-                    <select
-                      value={ben.tipo_id || ''}
-                      onChange={(e) => onBeneficiarioTipoIdChange(idx, e.target.value)}
-                      style={err.tipo_id ? ESTILO_CELDA_ERROR : undefined}
-                    >
-                      <option value="">-</option>
-                      {TIPOS_ID_BENEFICIARIO.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      value={ben.numero_id || ''} placeholder="Número"
-                      onChange={(e) => onBeneficiarioChange(idx, 'numero_id', sanitizeIdValue(e.target.value, ben.tipo_id))}
-                      {...getIdPropsByTipoDocumento(ben.tipo_id)}
-                      maxLength={LONGITUD_MAXIMA_ID}
-                      disabled={!ben.tipo_id}
-                      style={err.numero_id ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={ben.es_pep || ''}
-                      onChange={(e) => onBeneficiarioChange(idx, 'es_pep', e.target.value)}
-                      style={err.es_pep ? ESTILO_CELDA_ERROR : undefined}
-                    >
-                      <option value="">-</option>
-                      {OPCIONES_PEP.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      value={ben.vinculos_pep || ''} placeholder="Detalle"
-                      onChange={(e) => onBeneficiarioChange(idx, 'vinculos_pep', e.target.value)}
-                      disabled={ben.es_pep === 'no'}
-                      style={err.vinculos_pep ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                  </td>
+                  <CeldaIdentificacion
+                    item={ben} err={err} tiposId={TIPOS_ID_JUNTA}
+                    onTipoChange={(tipo) => onBeneficiarioTipoIdChange(idx, tipo)}
+                    onNumeroChange={(val) => onBeneficiarioChange(idx, 'numero_id', val)}
+                  />
+                  <CeldaPEP item={ben} err={err} onChange={(campo, val) => onBeneficiarioChange(idx, campo, val)} />
                   {beneficiarios.length > 1 && (
                     <td>
-                      <button
-                        type="button"
-                        onClick={() => onEliminarBeneficiario(idx)}
-                        style={ESTILO_BTN_ELIMINAR}
-                        title="Eliminar beneficiario"
-                      >
-                        ×
-                      </button>
+                      <button type="button" onClick={() => onEliminarBeneficiario(idx)} style={ESTILO_BTN_ELIMINAR} title="Eliminar beneficiario">×</button>
                     </td>
                   )}
                 </tr>
