@@ -27,6 +27,7 @@ const TIPOS_TRANSACCION = [
  */
 export default function PasoContactosBancaria({
   formData, onChange, onOpenHelp, errors = {},
+  onMonedaChange, onTiposChange,
   referenciasComerciales, onReferenciaChange, onAddReferencia, onEliminarReferencia,
   referenciasBancarias,   onReferenciaBancariaChange, onAddReferenciaBancaria, onEliminarReferenciaBancaria,
 }) {
@@ -36,11 +37,8 @@ export default function PasoContactosBancaria({
   const tiposSeleccionados = formData.tipos_transaccion ?? [];
   const muestraCuales     = tiposSeleccionados.includes('otras');
 
-  const handleMonedaChange = (option) =>
-    onChange({ target: { name: 'realiza_operaciones_moneda_extranjera', value: option?.value ?? '', type: 'text' } });
-
-  const handleTiposChange = (opciones) =>
-    onChange({ target: { name: 'tipos_transaccion', value: opciones.map(o => o.value), type: 'text' } });
+  const handleMonedaChange = (option) => onMonedaChange(option?.value ?? '');
+  const handleTiposChange  = (opciones) => onTiposChange(opciones.map(o => o.value));
 
   const tiposValue = TIPOS_TRANSACCION.filter(o => tiposSeleccionados.includes(o.value));
   const monedaValue = OPCIONES_MONEDA.find(o => o.value === formData.realiza_operaciones_moneda_extranjera) ?? null;

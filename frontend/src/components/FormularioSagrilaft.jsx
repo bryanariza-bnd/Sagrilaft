@@ -147,6 +147,8 @@ export default function FormularioSagrilaft() {
         {step === 6 && (
           <PasoContactosBancaria
             {...pasoProps}
+            onMonedaChange={handleMonedaExtranjeraChange}
+            onTiposChange={handleTiposTransaccionChange}
             referenciasComerciales={referenciasComerciales}
             onReferenciaChange={handleReferenciaChange}
             onAddReferencia={addReferencia}
