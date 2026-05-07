@@ -2,7 +2,8 @@ import { CARGOS_JUNTA_DIRECTIVA } from '../../data/formularioConfig';
 import {
   onlyTextKeyDown, onlyTextPaste,
   onlyAlphanumericKeyDown, onlyAlphanumericPaste,
-  getIdPropsByTipoDocumento, sanitizeIdValue
+  getIdPropsByTipoDocumento, sanitizeIdValue,
+  onPorcentajeKeyDown, onPorcentajePaste,
 } from '../../utils/inputValidation';
 import {
   UMBRAL_MINIMO_PARTICIPACION_ACCIONISTA,
@@ -10,7 +11,7 @@ import {
   PORCENTAJE_MAXIMO_PERMITIDO,
   LONGITUD_MAXIMA_ID,
 } from '../../utils/constantes';
-import { HR, ESTILO_CELDA_ERROR } from '../TablaFormComponents';
+import { HR, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR } from '../TablaFormComponents';
 
 const TIPOS_ID_JUNTA = [
   { value: 'CC',  label: 'CC'  },
@@ -43,9 +44,9 @@ const TIPOS_ID_BENEFICIARIO = [
 export default function PasoJuntaAccionistas({
   formData,
   errors = {},
-  juntaDirectiva, onJuntaChange, onJuntaTipoIdChange, onAddJuntaMember,
-  accionistas, onAccionistaChange, onAccionistaTipoIdChange, onAddAccionista,
-  beneficiarios, onBeneficiarioChange, onBeneficiarioTipoIdChange, onAddBeneficiario,
+  juntaDirectiva, onJuntaChange, onJuntaTipoIdChange, onAddJuntaMember, onEliminarJuntaMember,
+  accionistas, onAccionistaChange, onAccionistaTipoIdChange, onAddAccionista, onEliminarAccionista,
+  beneficiarios, onBeneficiarioChange, onBeneficiarioTipoIdChange, onAddBeneficiario, onEliminarBeneficiario,
 }) {
   const erroresFilasJunta = errors.junta_directiva_filas ?? [];
   const erroresFilasAcc   = errors.accionistas_filas     ?? [];
@@ -84,6 +85,7 @@ export default function PasoJuntaAccionistas({
             <tr>
               <th>Cargo</th><th>Nombre</th><th>Tipo ID</th>
               <th>Número ID</th><th>¿PEP?</th><th>Vínculos PEP</th>
+              {juntaDirectiva.length > 1 && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -147,6 +149,18 @@ export default function PasoJuntaAccionistas({
                       style={err.vinculos_pep ? ESTILO_CELDA_ERROR : undefined}
                     />
                   </td>
+                  {juntaDirectiva.length > 1 && (
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => onEliminarJuntaMember(idx)}
+                        style={ESTILO_BTN_ELIMINAR}
+                        title="Eliminar miembro"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -179,6 +193,7 @@ export default function PasoJuntaAccionistas({
             <tr>
               <th>Nombre o Razón Social</th><th>% Participación</th><th>Tipo ID</th>
               <th>Número ID</th><th>¿PEP?</th><th>Vínculos PEP</th>
+              {accionistas.length > 1 && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -201,6 +216,8 @@ export default function PasoJuntaAccionistas({
                       max={PORCENTAJE_MAXIMO_PERMITIDO - 0.01}
                       value={acc.porcentaje || ''} placeholder="%"
                       onChange={(e) => onAccionistaChange(idx, 'porcentaje', e.target.value)}
+                      onKeyDown={onPorcentajeKeyDown}
+                      onPaste={onPorcentajePaste}
                       style={err.porcentaje ? ESTILO_CELDA_ERROR : undefined}
                     />
                     {err.porcentaje && (
@@ -245,6 +262,18 @@ export default function PasoJuntaAccionistas({
                       style={err.vinculos_pep ? ESTILO_CELDA_ERROR : undefined}
                     />
                   </td>
+                  {accionistas.length > 1 && (
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => onEliminarAccionista(idx)}
+                        style={ESTILO_BTN_ELIMINAR}
+                        title="Eliminar accionista"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -276,6 +305,7 @@ export default function PasoJuntaAccionistas({
             <tr>
               <th>Nombre / Razón Social</th><th>% Control</th><th>Tipo ID</th>
               <th>Número ID</th><th>¿PEP?</th><th>Vínculos PEP</th>
+              {beneficiarios.length > 1 && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -298,6 +328,8 @@ export default function PasoJuntaAccionistas({
                       max={PORCENTAJE_MAXIMO_PERMITIDO - 0.01}
                       value={ben.porcentaje || ''} placeholder="%"
                       onChange={(e) => onBeneficiarioChange(idx, 'porcentaje', e.target.value)}
+                      onKeyDown={onPorcentajeKeyDown}
+                      onPaste={onPorcentajePaste}
                       style={err.porcentaje ? ESTILO_CELDA_ERROR : undefined}
                     />
                     {err.porcentaje && (
@@ -342,6 +374,18 @@ export default function PasoJuntaAccionistas({
                       style={err.vinculos_pep ? ESTILO_CELDA_ERROR : undefined}
                     />
                   </td>
+                  {beneficiarios.length > 1 && (
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => onEliminarBeneficiario(idx)}
+                        style={ESTILO_BTN_ELIMINAR}
+                        title="Eliminar beneficiario"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

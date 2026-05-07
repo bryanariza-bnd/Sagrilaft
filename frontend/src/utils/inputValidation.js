@@ -82,10 +82,21 @@ export const onlyAlphanumericStrictPaste = (e) => {
   }
 };
 
-/** Bloquea el signo negativo, '+' y notación científica 'e' en campos numéricos positivos. */
-const blockNegativeKeyDown = (e) => {
+/**
+ * Bloquea caracteres inválidos en campos de porcentaje (% Participación, % Control).
+ * type="number" ya rechaza la mayoría de letras, pero permite '-', '+', 'e', 'E'
+ * por notación científica — este handler los elimina.
+ */
+export const onPorcentajeKeyDown = (e) => {
   if (e.ctrlKey || e.metaKey) return;
   if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault();
+};
+
+/** Bloquea pegado de contenido no numérico en campos de porcentaje. */
+export const onPorcentajePaste = (e) => {
+  if (!/^\d*\.?\d*$/.test(e.clipboardData.getData('text'))) {
+    e.preventDefault();
+  }
 };
 
 /**
@@ -134,8 +145,7 @@ export function getInputProps(fieldName) {
     props.inputMode = 'numeric';
   }
   if (reglas.soloPositivo) {
-    // Solo aplica blockNegativeKeyDown si soloNumericos no lo cubre ya
-    if (!reglas.soloNumericos) props.onKeyDown = blockNegativeKeyDown;
+    if (!reglas.soloNumericos) props.onKeyDown = onPorcentajeKeyDown;
     props.min = 0;
   }
   if (reglas.longitudExacta) {

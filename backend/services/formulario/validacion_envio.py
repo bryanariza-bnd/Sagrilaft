@@ -111,6 +111,7 @@ class ValidadorEnvioFormulario:
         ("contacto_pagos_correo",     "Correo (Reportes de Pago)"),
         ("origen_fondos",           "Origen de Fondos"),
         ("fecha_firma",             "Fecha de Firma"),
+        ("nombre_firma",            "Nombre de Firma"),
         ("ciudad_firma",            "Ciudad de Firma"),
     ]
 

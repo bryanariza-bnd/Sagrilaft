@@ -83,7 +83,7 @@ export default function PasoDeclaraciones({ formData, onChange, onOpenHelp, erro
       </h3>
       <div className="form-row">
         <FormField
-          label="Nombre del Representante Legal" name="nombre_firma"
+          label="Nombre del Representante Legal" name="nombre_firma" required
           value={formData.nombre_firma} onChange={onChange}
           onOpenHelp={onOpenHelp} error={errors.nombre_firma}
         />
