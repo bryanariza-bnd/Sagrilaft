@@ -23,6 +23,7 @@ from api.schemas import (
     FormularioUpdate,
     ResultadoValidacionEnvio,
 )
+from api.dependencies import obtener_servicio_acceso
 from core.contratos import ExtractorIAImp
 from core.configuracion import AppConfig
 from core.limitador import limitador
@@ -42,13 +43,6 @@ def obtener_servicio_formulario(
 ) -> FormularioService:
     """Crea un FormularioService con las dependencias inyectadas."""
     return FormularioService(sesion, extractor, config.upload_dir)
-
-
-def obtener_servicio_acceso(
-    sesion: Session = Depends(get_db),
-    config: AppConfig = Depends(obtener_config),
-) -> AccesoManualService:
-    return AccesoManualService(sesion, config.frontend_urls[0])
 
 
 # ─── Recuperación de sesión ──────────────────────────────────────────────────

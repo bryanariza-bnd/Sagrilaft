@@ -10,11 +10,8 @@ SRP: parsea solicitudes HTTP y delega toda la lógica al AccesoManualService.
 from typing import List
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 
-from core.configuracion import AppConfig
-from infrastructure.persistencia.database import get_db
-from infrastructure.dependencies import obtener_config
+from api.dependencies import obtener_servicio_acceso
 from api.schemas import (
     AccesoManualCreado,
     AccesoManualResumen,
@@ -24,17 +21,6 @@ from api.schemas import (
 from services.acceso_manual.acceso_manual_service import AccesoManualService
 
 enrutador = APIRouter(prefix="/api/accesos-manuales", tags=["accesos-manuales"])
-
-
-def _obtener_servicio(
-    sesion: Session = Depends(get_db),
-    config: AppConfig = Depends(obtener_config),
-) -> AccesoManualService:
-    """
-    Construye el AccesoManualService usando FRONTEND_URL de la configuración,
-    que apunta a la aplicación React (no al backend FastAPI).
-    """
-    return AccesoManualService(sesion, config.frontend_urls[0])
 
 
 # ─── Creación ────────────────────────────────────────────────────────────────
@@ -52,7 +38,7 @@ def _obtener_servicio(
 )
 def crear_acceso_manual(
     solicitud_acceso: SolicitudAccesoManual,
-    servicio: AccesoManualService = Depends(_obtener_servicio),
+    servicio: AccesoManualService = Depends(obtener_servicio_acceso),
 ) -> AccesoManualCreado:
     return servicio.crear_acceso(solicitud_acceso)
 
@@ -66,7 +52,7 @@ def crear_acceso_manual(
     description="Devuelve todos los accesos creados ordenados del más reciente al más antiguo, con su estado calculado (activo, consumido o expirado).",
 )
 def listar_accesos_manuales(
-    servicio: AccesoManualService = Depends(_obtener_servicio),
+    servicio: AccesoManualService = Depends(obtener_servicio_acceso),
 ) -> List[AccesoManualResumen]:
     return servicio.listar_accesos()
 
@@ -89,6 +75,6 @@ def listar_accesos_manuales(
 )
 def resolver_token_diligenciamiento(
     token: str,
-    servicio: AccesoManualService = Depends(_obtener_servicio),
+    servicio: AccesoManualService = Depends(obtener_servicio_acceso),
 ) -> FormularioConDetalles:
     return servicio.resolver_token(token)
