@@ -95,7 +95,7 @@ class ZohoSignService:
         data_crear = {
             "requests": {
                 "request_name":   nombre_documento,
-                "expiration_days": 5,
+                "expiration_days": 5, #VERIFICAR EXPIRACION JUNTO A EL LINK DE DILIGENCIAMIENTO PARA DEJAR CONSISTENCIA
                 "is_sequential":  True,
                 "actions": [
                     {
@@ -168,11 +168,11 @@ class ZohoSignService:
                                 "field_type_name": "Signature",
                                 "document_id":     document_id,
                                 "action_id":       action_id,
-                                "is_mandatory":    True,
+                                "is_mandatory":    True, # Para Campo Obligatorio   
                                 "page_no":         pagina_firma,
-                                "x_coord":         52,   # 40 (margen pág.) + 12 (padding card)
-                                "y_coord":         340,  # dentro del card Firma, bajo el grid
-                                "abs_width":       491,  # 515 − 2×12 (padding card izq+der)
+                                "x_coord":         60   ,   # 40 (margen pág.) + 12 (padding card)
+                                "y_coord":         240,  # dentro del card Firma, bajo el grid
+                                "abs_width":       230,  # 515 − 2×12 (padding card izq+der)
                                 "abs_height":      50,
                             }
                         ],
