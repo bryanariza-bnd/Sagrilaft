@@ -9,7 +9,7 @@ import {
   UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL,
   PORCENTAJE_MAXIMO_PERMITIDO,
 } from '../../utils/constantes';
-import { HR, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, CeldaPEP, CeldaIdentificacion } from '../TablaFormComponents';
+import { HR, SectionTitle, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, CeldaPEP, CeldaIdentificacion } from '../TablaFormComponents';
 
 const TIPOS_ID_JUNTA = [
   { value: 'CC',  label: 'CC'  },
@@ -56,9 +56,7 @@ export default function PasoJuntaAccionistas({
       <p className="section-subtitle">Para responder las preguntas respecto a PEP´s, tenga en cuenta que corresponden a personas expuestas políticamente o públicamente que: Manejan recursos públicos, tienen algún grado de poder público o gozan dereconocimiento público.</p>
 
       {/* ── Junta Directiva ─────────────────────────────────────────────────── */}
-      <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--gray-800)', marginBottom: '12px' }}>
-        Junta Directiva y Representantes
-      </h3>
+      <SectionTitle bold>Junta Directiva y Representantes</SectionTitle>
       <div className="info-box">
         <p> PEP: Persona Expuesta Políticamente — persona que maneja recursos públicos, tiene poder público o reconocimiento público.</p>
         <p> ¿Vínculos con PEP? Si es asi, describa, de lo contrario colocar No.</p>
@@ -122,9 +120,7 @@ export default function PasoJuntaAccionistas({
       <HR />
 
       {/* ── Composición Accionaria ───────────────────────────────────────────── */}
-      <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--gray-800)', marginBottom: '12px' }}>
-        Composición Accionaria
-      </h3>
+      <SectionTitle bold>Composición Accionaria</SectionTitle>
       <div className="info-box">
         <p>Registrar todos los accionistas o asociados que tengan directa o indirectamente mas del {UMBRAL_MINIMO_PARTICIPACION_ACCIONISTA}% de su capital social, aporte o participación.</p>
         <p>  ¿Vínculos con PEP? Si es asi, describa, de lo contrario colocar No.</p>
@@ -195,9 +191,7 @@ export default function PasoJuntaAccionistas({
       <HR />
 
       {/* ── Beneficiario Final ───────────────────────────────────────────────── */}
-      <h3 style={{ fontSize: '1rem', fontWeight: '800', color: 'var(--gray-800)', marginBottom: '12px' }}>
-        Beneficiario Final
-      </h3>
+      <SectionTitle bold>Beneficiario Final</SectionTitle>
       <div className="info-box">
         <p>En caso de que los socios sean personas jurídicas, describa la(s) persona(s) natural(es) que ejercen el control efectivo directo o indirecto sobre los socios persona(s) jurídica(s), o que sea titular del <strong>{UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL}% o más del capital</strong> de los socios.</p>
       </div>

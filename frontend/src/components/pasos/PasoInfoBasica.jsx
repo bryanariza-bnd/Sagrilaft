@@ -1,6 +1,7 @@
 import FormField from '../FormField';
 import LocationSelect from '../LocationSelect';
 import AlertasInconsistencia from '../AlertasInconsistencia';
+import { HR } from '../TablaFormComponents';
 import { useUbicacion, NA_OPTION } from '../../hooks/useUbicacion';
 
 const OPCIONES_TIPO_CONTRAPARTE = [
@@ -37,25 +38,6 @@ const OPCIONES_TIPO_IDENTIFICACION = [
   { value: 'PAS', label: 'Pasaporte'            },
 ];
 
-const ESTILO_SEPARADOR_SECCION = {
-  border: 'none',
-  borderTop: '1px solid var(--gray-200)',
-  margin: '24px 0',
-};
-
-function SeparadorSeccion() {
-  return <hr style={ESTILO_SEPARADOR_SECCION} />;
-}
-
-function AlertasCampo({ alertas, tipoCampo, nombreCampo }) {
-  return (
-    <AlertasInconsistencia
-      alertas={alertas}
-      tipoCampo={tipoCampo}
-      nombreCampo={nombreCampo}
-    />
-  );
-}
 
 /**
  * Paso 2 — Clasificación e Información Básica del Sujeto Obligado / Contraparte.
@@ -131,7 +113,7 @@ export default function PasoInfoBasica(props) {
         ].map(renderCampo)}
       </div>
 
-      <SeparadorSeccion />
+      <HR />
 
       <div className="form-row single">
         {renderCampo({
@@ -141,7 +123,7 @@ export default function PasoInfoBasica(props) {
         })}
       </div>
 
-      <AlertasCampo
+      <AlertasInconsistencia
         alertas={alertasRazonSocial}
         tipoCampo="nombre sin resolver"
         nombreCampo="Nombre o Razón Social"
@@ -169,7 +151,7 @@ export default function PasoInfoBasica(props) {
         ].map(renderCampo)}
       </div>
 
-      <AlertasCampo
+      <AlertasInconsistencia
         alertas={alertasNit}
         tipoCampo="NIT sin resolver"
         nombreCampo="Número de Identificación"
@@ -183,7 +165,7 @@ export default function PasoInfoBasica(props) {
         })}
       </div>
 
-      <AlertasCampo
+      <AlertasInconsistencia
         alertas={alertasDireccion}
         tipoCampo="dirección sin resolver"
         nombreCampo="Dirección"

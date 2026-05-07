@@ -25,8 +25,8 @@ export const HR = () => (
   <hr style={{ border: 'none', borderTop: '1px solid var(--gray-200)', margin: '24px 0' }} />
 );
 
-export const SectionTitle = ({ children }) => (
-  <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--gray-800)', marginBottom: '12px' }}>
+export const SectionTitle = ({ children, bold = false }) => (
+  <h3 style={{ fontSize: '1rem', fontWeight: bold ? '800' : '600', color: 'var(--gray-800)', marginBottom: '12px' }}>
     {children}
   </h3>
 );
