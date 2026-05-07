@@ -16,10 +16,6 @@ const CLAVE_BORRADOR = 'sagrilaft_autosave';
 
 /**
  * Persiste un snapshot del formulario en localStorage.
- * @param {object} snapshot - Estado completo del formulario
- */
-/**
- * Persiste un snapshot del formulario en localStorage.
  *
  * El flag `enviado` se incluye para que la capa de restauración pueda
  * distinguir un borrador activo de un formulario ya finalizado.
@@ -71,24 +67,4 @@ export function eliminarBorradorDeStorage() {
  */
 export function borradorEsFormularioEnviado(borrador) {
   return borrador?.enviado === true;
-}
-
-/**
- * Construye el mensaje de confirmación para el diálogo de recuperación.
- * Soporta el campo legado `savedAt` para compatibilidad con borradores previos.
- *
- * @param {object} borrador - Borrador deserializado del storage
- * @returns {string} Mensaje legible listo para window.confirm
- */
-export function construirMensajeRecuperacion(borrador) {
-  const identificador = borrador.codigoPeticion
-    ? `Código: ${borrador.codigoPeticion}`
-    : 'un borrador sin código';
-
-  const fechaStr = borrador.guardadoEn ?? borrador.savedAt;
-  const fechaFormateada = fechaStr
-    ? ` (guardado: ${new Date(fechaStr).toLocaleString('es-CO')})`
-    : '';
-
-  return `Se encontró ${identificador}${fechaFormateada}.\n¿Desea retomar donde lo dejó?`;
 }

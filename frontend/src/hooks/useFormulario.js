@@ -175,7 +175,7 @@ export function useFormulario() {
     }));
   }, []);
 
-  const handleFileChange = async (tipoDoc, file) => {
+  const handleFileChange = useCallback(async (tipoDoc, file) => {
     if (!file) return;
     setUploadingDoc(prev => ({ ...prev, [tipoDoc]: true }));
     try {
@@ -197,7 +197,7 @@ export function useFormulario() {
     } finally {
       setUploadingDoc(prev => ({ ...prev, [tipoDoc]: false }));
     }
-  };
+  }, [formularioId]);
 
   const handleRemoveFile = useCallback((tipoDoc) => {
     setEstadoConfirmacion({ visible: true, tipoDoc });
