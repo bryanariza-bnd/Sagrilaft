@@ -11,6 +11,7 @@
  * DRY : reutiliza FormField, HR, SectionTitle, MensajeError y ESTILO_CELDA_ERROR de módulos compartidos.
  */
 import FormField from '../FormField';
+import ContactGroup from '../ContactGroup';
 import { HR, SectionTitle, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, MensajeError } from '../TablaFormComponents';
 import { onlyNumericKeyDown, onlyNumericPaste } from '../../utils/inputValidation';
 import { SECTORES_EMPRESA } from '../../utils/constantes';
@@ -167,67 +168,21 @@ function ClasificacionTributaria({ formData, onChange, onActividadChange, onOpen
   );
 }
 
-/**
- * Sección 9 — Personas de contacto autorizadas.
- * Reutiliza FormField con los mismos patrones de los otros pasos.
- */
 function ContactoAutorizado({ formData, onChange, onOpenHelp, errors }) {
   return (
     <>
       <SectionTitle>9. CONTACTO</SectionTitle>
-
-      <p style={{ fontWeight: '600', fontSize: '0.875rem', marginBottom: '8px' }}>
-        Persona autorizada para recepción de órdenes de compra y de servicio
-      </p>
-      <div className="form-row">
-        <FormField
-          label="Nombre" name="contacto_ordenes_nombre" required
-          value={formData.contacto_ordenes_nombre} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_ordenes_nombre}
-        />
-        <FormField
-          label="Cargo" name="contacto_ordenes_cargo" required
-          value={formData.contacto_ordenes_cargo} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_ordenes_cargo}
-        />
-        <FormField
-          label="Teléfono y Extensión" name="contacto_ordenes_telefono" required
-          value={formData.contacto_ordenes_telefono} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_ordenes_telefono}
-        />
-        <FormField
-          label="Correo Electrónico" name="contacto_ordenes_correo" required
-          value={formData.contacto_ordenes_correo} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_ordenes_correo}
-        />
-      </div>
-
-      <p style={{ fontWeight: '600', fontSize: '0.875rem', marginBottom: '8px', marginTop: '16px' }}>
-        Persona autorizada para recepción de reportes de pago
-      </p>
-      <div className="form-row">
-        <FormField
-          label="Nombre" name="contacto_pagos_nombre" required
-          value={formData.contacto_pagos_nombre} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_pagos_nombre}
-        />
-        <FormField
-          label="Cargo" name="contacto_pagos_cargo" required
-          value={formData.contacto_pagos_cargo} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_pagos_cargo}
-        />
-        <FormField
-          label="Teléfono y Extensión" name="contacto_pagos_telefono" required
-          value={formData.contacto_pagos_telefono} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_pagos_telefono}
-        />
-        <FormField
-          label="Correo Electrónico" name="contacto_pagos_correo" required
-          value={formData.contacto_pagos_correo} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.contacto_pagos_correo}
-        />
-      </div>
-
+      <ContactGroup
+        titulo="Persona autorizada para recepción de órdenes de compra y de servicio"
+        prefijo="contacto_ordenes"
+        formData={formData} onChange={onChange} onOpenHelp={onOpenHelp} errors={errors}
+      />
+      <ContactGroup
+        titulo="Persona autorizada para recepción de reportes de pago"
+        prefijo="contacto_pagos"
+        formData={formData} onChange={onChange} onOpenHelp={onOpenHelp} errors={errors}
+        estiloTitulo={{ marginTop: '16px' }}
+      />
       <HR />
     </>
   );
