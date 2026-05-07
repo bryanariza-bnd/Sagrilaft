@@ -31,15 +31,15 @@ export default function FormularioSagrilaft() {
     codigoPeticion, documentos, saving, uploadingDoc, eliminandoDoc,
     estadoConfirmacion, confirmarEliminacion, cancelarEliminacion,
     juntaDirectiva, accionistas, beneficiarios, submitted, lastSaved,
-    referenciasComerciales, handleReferenciaChange, addReferencia,
-    referenciasBancarias, handleReferenciaBancariaChange, addReferenciaBancaria,
-    infoBancariaPagos, handleInfoBancariaPagosChange, addInfoBancariaPagos,
+    referenciasComerciales, handleReferenciaChange, addReferencia, eliminarReferencia,
+    referenciasBancarias, handleReferenciaBancariaChange, addReferenciaBancaria, eliminarReferenciaBancaria,
+    infoBancariaPagos, handleInfoBancariaPagosChange, addInfoBancariaPagos, eliminarInfoBancariaPagos,
     handleChange, handleMonedaExtranjeraChange, handleActividadChange, handleTiposTransaccionChange,
     handleFileChange, handleRemoveFile, handleSaveDraft,
     handleNext, handlePrev, handleStepClick, handleSubmit,
-    handleJuntaChange, handleJuntaTipoIdChange, addJuntaMember,
-    handleAccionistaChange, handleAccionistaTipoIdChange, addAccionista,
-    handleBeneficiarioChange, handleBeneficiarioTipoIdChange, addBeneficiario,
+    handleJuntaChange, handleJuntaTipoIdChange, addJuntaMember, eliminarJuntaMember,
+    handleAccionistaChange, handleAccionistaTipoIdChange, addAccionista, eliminarAccionista,
+    handleBeneficiarioChange, handleBeneficiarioTipoIdChange, addBeneficiario, eliminarBeneficiario,
     alertasRazonSocial,
     alertasNit,
     alertasNombreRepresentante,
@@ -128,14 +128,17 @@ export default function FormularioSagrilaft() {
             onJuntaChange={handleJuntaChange}
             onJuntaTipoIdChange={handleJuntaTipoIdChange}
             onAddJuntaMember={addJuntaMember}
+            onEliminarJuntaMember={eliminarJuntaMember}
             accionistas={accionistas}
             onAccionistaChange={handleAccionistaChange}
             onAccionistaTipoIdChange={handleAccionistaTipoIdChange}
             onAddAccionista={addAccionista}
+            onEliminarAccionista={eliminarAccionista}
             beneficiarios={beneficiarios}
             onBeneficiarioChange={handleBeneficiarioChange}
             onBeneficiarioTipoIdChange={handleBeneficiarioTipoIdChange}
             onAddBeneficiario={addBeneficiario}
+            onEliminarBeneficiario={eliminarBeneficiario}
           />
         )}
 
@@ -147,9 +150,11 @@ export default function FormularioSagrilaft() {
             referenciasComerciales={referenciasComerciales}
             onReferenciaChange={handleReferenciaChange}
             onAddReferencia={addReferencia}
+            onEliminarReferencia={eliminarReferencia}
             referenciasBancarias={referenciasBancarias}
             onReferenciaBancariaChange={handleReferenciaBancariaChange}
             onAddReferenciaBancaria={addReferenciaBancaria}
+            onEliminarReferenciaBancaria={eliminarReferenciaBancaria}
           />
         )}
 
@@ -160,6 +165,7 @@ export default function FormularioSagrilaft() {
             infoBancariaPagos={infoBancariaPagos}
             onInfoBancariaPagosChange={handleInfoBancariaPagosChange}
             onAddInfoBancariaPagos={addInfoBancariaPagos}
+            onEliminarInfoBancariaPagos={eliminarInfoBancariaPagos}
           />
         )}
 

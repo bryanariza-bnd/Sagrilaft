@@ -56,7 +56,14 @@ function usarTabla(valorInicial) {
     setFilas(prev => [...prev, filaInicial]);
   }, []);
 
-  return { filas, setFilas, cambiarFila, cambiarTipoIdentificacion, agregarFila };
+  const eliminarFila = useCallback((index) => {
+    setFilas(prev => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
+
+  return { filas, setFilas, cambiarFila, cambiarTipoIdentificacion, agregarFila, eliminarFila };
 }
 
 export function useTablasDinamicas() {
@@ -74,32 +81,38 @@ export function useTablasDinamicas() {
     handleJuntaChange:           junta.cambiarFila,
     handleJuntaTipoIdChange:     junta.cambiarTipoIdentificacion,
     addJuntaMember:              () => junta.agregarFila(),
+    eliminarJuntaMember:         (idx) => junta.eliminarFila(idx),
     // Accionistas
     accionistas:                     accionistasTabla.filas,
     setAccionistas:                  accionistasTabla.setFilas,
     handleAccionistaChange:          accionistasTabla.cambiarFila,
     handleAccionistaTipoIdChange:    accionistasTabla.cambiarTipoIdentificacion,
     addAccionista:                   () => accionistasTabla.agregarFila({}),
+    eliminarAccionista:              (idx) => accionistasTabla.eliminarFila(idx),
     // Beneficiarios Finales
     beneficiarios:                    beneficiariosTabla.filas,
     setBeneficiarios:                 beneficiariosTabla.setFilas,
     handleBeneficiarioChange:         beneficiariosTabla.cambiarFila,
     handleBeneficiarioTipoIdChange:   beneficiariosTabla.cambiarTipoIdentificacion,
     addBeneficiario:                  () => beneficiariosTabla.agregarFila({}),
+    eliminarBeneficiario:             (idx) => beneficiariosTabla.eliminarFila(idx),
     // Referencias Comerciales
     referenciasComerciales:        referenciasTabla.filas,
     setReferenciasComerciales:     referenciasTabla.setFilas,
     handleReferenciaChange:        referenciasTabla.cambiarFila,
     addReferencia:                 () => referenciasTabla.agregarFila({}),
+    eliminarReferencia:            (idx) => referenciasTabla.eliminarFila(idx),
     // Referencias Bancarias
     referenciasBancarias:          referenciasBancariasTabla.filas,
     setReferenciasBancarias:       referenciasBancariasTabla.setFilas,
     handleReferenciaBancariaChange: referenciasBancariasTabla.cambiarFila,
     addReferenciaBancaria:         () => referenciasBancariasTabla.agregarFila({}),
+    eliminarReferenciaBancaria:    (idx) => referenciasBancariasTabla.eliminarFila(idx),
     // Información Bancaria para Pagos (paso 7)
     infoBancariaPagos:            infoBancariaPagosTabla.filas,
     setInfoBancariaPagos:         infoBancariaPagosTabla.setFilas,
     handleInfoBancariaPagosChange: infoBancariaPagosTabla.cambiarFila,
     addInfoBancariaPagos:         () => infoBancariaPagosTabla.agregarFila({}),
+    eliminarInfoBancariaPagos:    (idx) => infoBancariaPagosTabla.eliminarFila(idx),
   };
 }

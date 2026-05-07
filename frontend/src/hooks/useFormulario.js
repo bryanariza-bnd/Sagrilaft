@@ -49,17 +49,17 @@ export function useFormulario() {
 
   const {
     juntaDirectiva, setJuntaDirectiva,
-    handleJuntaChange, handleJuntaTipoIdChange, addJuntaMember,
+    handleJuntaChange, handleJuntaTipoIdChange, addJuntaMember, eliminarJuntaMember,
     accionistas, setAccionistas,
-    handleAccionistaChange, handleAccionistaTipoIdChange, addAccionista,
+    handleAccionistaChange, handleAccionistaTipoIdChange, addAccionista, eliminarAccionista,
     beneficiarios, setBeneficiarios,
-    handleBeneficiarioChange, handleBeneficiarioTipoIdChange, addBeneficiario,
+    handleBeneficiarioChange, handleBeneficiarioTipoIdChange, addBeneficiario, eliminarBeneficiario,
     referenciasComerciales, setReferenciasComerciales,
-    handleReferenciaChange, addReferencia,
+    handleReferenciaChange, addReferencia, eliminarReferencia,
     referenciasBancarias, setReferenciasBancarias,
-    handleReferenciaBancariaChange, addReferenciaBancaria,
+    handleReferenciaBancariaChange, addReferenciaBancaria, eliminarReferenciaBancaria,
     infoBancariaPagos, setInfoBancariaPagos,
-    handleInfoBancariaPagosChange, addInfoBancariaPagos,
+    handleInfoBancariaPagosChange, addInfoBancariaPagos, eliminarInfoBancariaPagos,
   } = useTablasDinamicas();
 
   /**
@@ -313,6 +313,21 @@ export function useFormulario() {
     _limpiarErroresPaso4();
   }, [handleBeneficiarioTipoIdChange, _limpiarErroresPaso4]);
 
+  const onEliminarJuntaMember = useCallback((index) => {
+    eliminarJuntaMember(index);
+    _limpiarErroresPaso4();
+  }, [eliminarJuntaMember, _limpiarErroresPaso4]);
+
+  const onEliminarAccionista = useCallback((index) => {
+    eliminarAccionista(index);
+    _limpiarErroresPaso4();
+  }, [eliminarAccionista, _limpiarErroresPaso4]);
+
+  const onEliminarBeneficiario = useCallback((index) => {
+    eliminarBeneficiario(index);
+    _limpiarErroresPaso4();
+  }, [eliminarBeneficiario, _limpiarErroresPaso4]);
+
   // ── Handlers de tablas (limpian errores del paso 6 al editar) ────────────
 
   const _limpiarErroresPaso6 = useCallback(() => {
@@ -333,6 +348,16 @@ export function useFormulario() {
     _limpiarErroresPaso6();
   }, [handleReferenciaBancariaChange, _limpiarErroresPaso6]);
 
+  const onEliminarReferencia = useCallback((index) => {
+    eliminarReferencia(index);
+    _limpiarErroresPaso6();
+  }, [eliminarReferencia, _limpiarErroresPaso6]);
+
+  const onEliminarReferenciaBancaria = useCallback((index) => {
+    eliminarReferenciaBancaria(index);
+    _limpiarErroresPaso6();
+  }, [eliminarReferenciaBancaria, _limpiarErroresPaso6]);
+
   // ── Handlers de tablas (limpian errores del paso 7 al editar) ────────────
 
   const _limpiarErroresPaso7 = useCallback(() => {
@@ -347,6 +372,11 @@ export function useFormulario() {
     handleInfoBancariaPagosChange(...args);
     _limpiarErroresPaso7();
   }, [handleInfoBancariaPagosChange, _limpiarErroresPaso7]);
+
+  const onEliminarInfoBancariaPagos = useCallback((index) => {
+    eliminarInfoBancariaPagos(index);
+    _limpiarErroresPaso7();
+  }, [eliminarInfoBancariaPagos, _limpiarErroresPaso7]);
 
   // ── Navegación ───────────────────────────────────────────────────────────
 
@@ -481,15 +511,15 @@ export function useFormulario() {
     codigoPeticion, documentos, saving, uploadingDoc, eliminandoDoc,
     estadoConfirmacion, confirmarEliminacion, cancelarEliminacion,
     juntaDirectiva, accionistas, beneficiarios, submitted, lastSaved,
-    referenciasComerciales, handleReferenciaChange: onReferenciaChange, addReferencia,
-    referenciasBancarias, handleReferenciaBancariaChange: onReferenciaBancariaChange, addReferenciaBancaria,
-    infoBancariaPagos, handleInfoBancariaPagosChange: onInfoBancariaPagosChange, addInfoBancariaPagos,
+    referenciasComerciales, handleReferenciaChange: onReferenciaChange, addReferencia, eliminarReferencia: onEliminarReferencia,
+    referenciasBancarias, handleReferenciaBancariaChange: onReferenciaBancariaChange, addReferenciaBancaria, eliminarReferenciaBancaria: onEliminarReferenciaBancaria,
+    infoBancariaPagos, handleInfoBancariaPagosChange: onInfoBancariaPagosChange, addInfoBancariaPagos, eliminarInfoBancariaPagos: onEliminarInfoBancariaPagos,
     handleChange, handleMonedaExtranjeraChange, handleActividadChange, handleTiposTransaccionChange,
     handleFileChange, handleRemoveFile, handleSaveDraft,
     handleNext, handlePrev, handleStepClick, handleSubmit,
-    handleJuntaChange: onJuntaChange, handleJuntaTipoIdChange: onJuntaTipoIdChange, addJuntaMember,
-    handleAccionistaChange: onAccionistaChange, handleAccionistaTipoIdChange: onAccionistaTipoIdChange, addAccionista,
-    handleBeneficiarioChange: onBeneficiarioChange, handleBeneficiarioTipoIdChange: onBeneficiarioTipoIdChange, addBeneficiario,
+    handleJuntaChange: onJuntaChange, handleJuntaTipoIdChange: onJuntaTipoIdChange, addJuntaMember, eliminarJuntaMember: onEliminarJuntaMember,
+    handleAccionistaChange: onAccionistaChange, handleAccionistaTipoIdChange: onAccionistaTipoIdChange, addAccionista, eliminarAccionista: onEliminarAccionista,
+    handleBeneficiarioChange: onBeneficiarioChange, handleBeneficiarioTipoIdChange: onBeneficiarioTipoIdChange, addBeneficiario, eliminarBeneficiario: onEliminarBeneficiario,
     alertasRazonSocial,
     alertasNit,
     alertasNombreRepresentante,
