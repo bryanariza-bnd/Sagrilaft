@@ -3,7 +3,7 @@ import FormField from '../FormField';
 import { buildSelectStyles } from '../../utils/selectStyles';
 import { onlyNumericKeyDown, onlyNumericPaste } from '../../utils/inputValidation';
 import { LONGITUD_TELEFONO } from '../../utils/constantes';
-import { HR, SectionTitle, SubLabel, ESTILO_CELDA_ERROR, MensajeError } from '../TablaFormComponents';
+import { HR, SectionTitle, SubLabel, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, MensajeError } from '../TablaFormComponents';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -27,8 +27,8 @@ const TIPOS_TRANSACCION = [
  */
 export default function PasoContactosBancaria({
   formData, onChange, onOpenHelp, errors = {},
-  referenciasComerciales, onReferenciaChange, onAddReferencia,
-  referenciasBancarias,   onReferenciaBancariaChange, onAddReferenciaBancaria,
+  referenciasComerciales, onReferenciaChange, onAddReferencia, onEliminarReferencia,
+  referenciasBancarias,   onReferenciaBancariaChange, onAddReferenciaBancaria, onEliminarReferenciaBancaria,
 }) {
   const errFilasComerciales = errors.referencias_comerciales_filas ?? [];
   const errFilasBancarias   = errors.referencias_bancarias_filas   ?? [];
@@ -63,6 +63,7 @@ export default function PasoContactosBancaria({
               <th>Persona a contactar</th>
               <th>Teléfono</th>
               <th>Ciudad</th>
+              {referenciasComerciales.length > 1 && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -110,6 +111,18 @@ export default function PasoContactosBancaria({
                     />
                     <MensajeError msg={err.ciudad} />
                   </td>
+                  {referenciasComerciales.length > 1 && (
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => onEliminarReferencia(idx)}
+                        style={ESTILO_BTN_ELIMINAR}
+                        title="Eliminar referencia"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -133,6 +146,7 @@ export default function PasoContactosBancaria({
             <tr>
               <th>Entidad</th>
               <th>Producto</th>
+              {referenciasBancarias.length > 1 && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -158,6 +172,18 @@ export default function PasoContactosBancaria({
                     />
                     <MensajeError msg={err.producto} />
                   </td>
+                  {referenciasBancarias.length > 1 && (
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => onEliminarReferenciaBancaria(idx)}
+                        style={ESTILO_BTN_ELIMINAR}
+                        title="Eliminar referencia bancaria"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

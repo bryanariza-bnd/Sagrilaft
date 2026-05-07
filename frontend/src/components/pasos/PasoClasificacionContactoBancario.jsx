@@ -11,7 +11,7 @@
  * DRY : reutiliza FormField, HR, SectionTitle, MensajeError y ESTILO_CELDA_ERROR de módulos compartidos.
  */
 import FormField from '../FormField';
-import { HR, SectionTitle, ESTILO_CELDA_ERROR, MensajeError } from '../TablaFormComponents';
+import { HR, SectionTitle, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, MensajeError } from '../TablaFormComponents';
 import { onlyNumericKeyDown, onlyNumericPaste } from '../../utils/inputValidation';
 import { SECTORES_EMPRESA } from '../../utils/constantes';
 
@@ -238,7 +238,7 @@ function ContactoAutorizado({ formData, onChange, onOpenHelp, errors }) {
  * Tabla dinámica que reutiliza el mismo patrón de PasoContactosBancaria
  * (onXChange, onAddX, errFilasX) via TablaFormComponents.
  */
-function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAddInfoBancariaPagos, errors }) {
+function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAddInfoBancariaPagos, onEliminarInfoBancariaPagos, errors }) {
   const errFilas = errors.info_bancaria_pagos_filas ?? [];
 
   return (
@@ -257,6 +257,7 @@ function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAdd
               <th>Ciudad / Oficina</th>
               <th>Tipo de Cuenta</th>
               <th>Número de Cuenta</th>
+              {infoBancariaPagos.length > 1 && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -307,6 +308,18 @@ function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAdd
                     />
                     <MensajeError msg={err.numero_cuenta} />
                   </td>
+                  {infoBancariaPagos.length > 1 && (
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => onEliminarInfoBancariaPagos(idx)}
+                        style={ESTILO_BTN_ELIMINAR}
+                        title="Eliminar cuenta"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -324,7 +337,7 @@ function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAdd
 
 export default function PasoClasificacionContactoBancario({
   formData, onChange, handleActividadChange, onOpenHelp, errors = {},
-  infoBancariaPagos, onInfoBancariaPagosChange, onAddInfoBancariaPagos,
+  infoBancariaPagos, onInfoBancariaPagosChange, onAddInfoBancariaPagos, onEliminarInfoBancariaPagos,
 }) {
   const esJuridica = formData.tipo_persona === 'juridica';
 
@@ -354,6 +367,7 @@ export default function PasoClasificacionContactoBancario({
         infoBancariaPagos={infoBancariaPagos}
         onInfoBancariaPagosChange={onInfoBancariaPagosChange}
         onAddInfoBancariaPagos={onAddInfoBancariaPagos}
+        onEliminarInfoBancariaPagos={onEliminarInfoBancariaPagos}
         errors={errors}
       />
     </div>
