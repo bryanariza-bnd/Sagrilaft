@@ -130,7 +130,7 @@ class FirmaService:
                 f"El archivo PDF no existe en disco: {pdf_path}"
             )
 
-        nombre_firmante  = formulario.nombre_firma or acceso.razon_social
+        nombre_firmante  = formulario.nombre_representante or acceso.razon_social
         nombre_documento = f"SAGRILAFT — {acceso.razon_social}"
 
         resultado = self._zoho.crear_solicitud_firma(

@@ -189,9 +189,10 @@ class FormularioBase(BaseModel):
     origen_fondos: Optional[str] = None
 
     # 13. Firma
-    fecha_firma: Optional[str] = None
+    dia_firma:    Optional[int] = None   # 1–31
+    mes_firma:    Optional[int] = None   # 1–12
+    year_firma:   Optional[int] = None   # ej: 2025
     ciudad_firma: Optional[str] = None
-    nombre_firma: Optional[str] = None
 
     # Datos dinámicos
     junta_directiva: Optional[List[MiembroJunta]] = None

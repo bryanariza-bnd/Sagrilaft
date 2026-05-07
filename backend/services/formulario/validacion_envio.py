@@ -109,10 +109,11 @@ class ValidadorEnvioFormulario:
         ("contacto_pagos_cargo",      "Cargo (Reportes de Pago)"),
         ("contacto_pagos_telefono",   "Teléfono (Reportes de Pago)"),
         ("contacto_pagos_correo",     "Correo (Reportes de Pago)"),
-        ("origen_fondos",           "Origen de Fondos"),
-        ("fecha_firma",             "Fecha de Firma"),
-        ("nombre_firma",            "Nombre de Firma"),
-        ("ciudad_firma",            "Ciudad de Firma"),
+        ("origen_fondos",  "Origen de Fondos"),
+        ("dia_firma",      "Día de Firma"),
+        ("mes_firma",      "Mes de Firma"),
+        ("year_firma",     "Año de Firma"),
+        ("ciudad_firma",   "Ciudad de Firma"),
     ]
 
     _CAMPOS_CLASIFICACION_JURIDICA: List[Tuple[str, str]] = [
@@ -194,6 +195,7 @@ class ValidadorEnvioFormulario:
             ))
 
         errores.extend(self._validar_campos_moneda_extranjera(formulario))
+        errores.extend(self._validar_campos_fecha_firma(formulario))
         errores.extend(self._validar_formatos(formulario))
 
         if self._es_persona_juridica(formulario):
@@ -208,6 +210,33 @@ class ValidadorEnvioFormulario:
 
     def _validar_clasificacion_tributaria(self, formulario: Formulario) -> List[ErrorValidacion]:
         return self._errores_presencia(formulario, self._CAMPOS_CLASIFICACION_JURIDICA)
+
+    def _validar_campos_fecha_firma(self, formulario: Formulario) -> List[ErrorValidacion]:
+        """Valida rangos de día (1-31), mes (1-12) y año (2000-2100) de la firma."""
+        errores: List[ErrorValidacion] = []
+
+        dia = formulario.dia_firma
+        if dia is not None and not (1 <= int(dia) <= 31):
+            errores.append(ErrorValidacion(
+                campo="dia_firma",
+                mensaje="El día de la firma debe estar entre 1 y 31",
+            ))
+
+        mes = formulario.mes_firma
+        if mes is not None and not (1 <= int(mes) <= 12):
+            errores.append(ErrorValidacion(
+                campo="mes_firma",
+                mensaje="El mes de la firma debe estar entre 1 y 12",
+            ))
+
+        year = formulario.year_firma
+        if year is not None and not (2000 <= int(year) <= 2100):
+            errores.append(ErrorValidacion(
+                campo="year_firma",
+                mensaje="El año de la firma debe estar entre 2000 y 2100",
+            ))
+
+        return errores
 
     def _validar_campos_moneda_extranjera(self, formulario: Formulario) -> List[ErrorValidacion]:
         """

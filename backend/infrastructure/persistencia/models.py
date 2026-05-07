@@ -233,9 +233,10 @@ class Formulario(Base):
     origen_fondos = Column(Text, nullable=True)
 
     # --- 13. Firma ---
-    fecha_firma = Column(String, nullable=True)
-    ciudad_firma = Column(String, nullable=True)
-    nombre_firma = Column(String, nullable=True)
+    dia_firma    = Column(Integer, nullable=True)   # 1–31
+    mes_firma    = Column(Integer, nullable=True)   # 1–12
+    year_firma   = Column(Integer, nullable=True)   # ej: 2025
+    ciudad_firma = Column(String,  nullable=True)
 
     # --- ZohoSign ---
     zoho_request_id        = Column(String, nullable=True)
