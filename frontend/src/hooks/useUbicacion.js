@@ -29,6 +29,10 @@ const statesToOptions = (countryCode) =>
 const citiesToOptions = (countryCode, stateCode) =>
   City.getCitiesOfState(countryCode, stateCode).map(c => toOption(c.name, c.name));
 
+const tieneOpciones = (lista) => lista.length > 0;
+
+export const NA_OPTION = { value: 'NA', label: 'NA' };
+
 // ── Genera un evento sintético compatible con handleChange de useFormulario ──
 
 const syntheticEvent = (name, value) => ({ target: { name, value, type: 'text' } });
@@ -42,17 +46,13 @@ const syntheticEvent = (name, value) => ({ target: { name, value, type: 'text' }
  * @param {string}   [options.paisKey]     - Campo del país      (default: 'pais').
  * @param {string}   [options.departamentoKey] - Campo del departamento (default: 'departamento').
  * @param {string}   [options.ciudadKey]   - Campo de la ciudad  (default: 'ciudad').
- * @param {string}   [options.defaultPais] - Código ISO de país por defecto cuando
- *                                           paisKey está vacío (ej. país de la empresa).
  */
 export function useUbicacion(formData, onChange, {
   paisKey         = 'pais',
   departamentoKey = 'departamento',
   ciudadKey       = 'ciudad',
-  defaultPais     = '',
 } = {}) {
-  // Valor efectivo del país: campo propio → fallback → vacío
-  const paisValue         = formData[paisKey] || defaultPais || '';
+  const paisValue         = formData[paisKey] || '';
   const departamentoValue = formData[departamentoKey] || '';
 
   // Opciones computadas solo cuando cambia el nivel padre
@@ -63,22 +63,33 @@ export function useUbicacion(formData, onChange, {
     [paisValue, departamentoValue],
   );
 
+  const paisSinDepartamentos = paisValue !== '' && !tieneOpciones(departamentosOptions);
+  const departamentoSinCiudades = (
+    !paisSinDepartamentos &&
+    departamentoValue !== '' &&
+    !tieneOpciones(ciudadesOptions)
+  );
+
   // Reconstruye el objeto { value, label } que react-select necesita como `value`
-  const selectedPais         = paisesOptions.find(o => o.value === paisValue)         ?? null;
+  const selectedPais         = paisesOptions.find(o => o.value === paisValue) ?? null;
   const selectedDepartamento = departamentosOptions.find(o => o.value === departamentoValue) ?? null;
   const selectedCiudad       = ciudadesOptions.find(o => o.value === formData[ciudadKey]) ?? null;
 
   // ── Handlers: reciben la opción seleccionada de react-select ────────────────
 
   const handlePaisChange = (option) => {
-    onChange(syntheticEvent(paisKey,         option?.value ?? ''));
-    onChange(syntheticEvent(departamentoKey, ''));
-    onChange(syntheticEvent(ciudadKey,       ''));
+    const nuevoPais = option?.value ?? '';
+    const sinDep    = nuevoPais !== '' && !tieneOpciones(statesToOptions(nuevoPais));
+    onChange(syntheticEvent(paisKey,         nuevoPais));
+    onChange(syntheticEvent(departamentoKey, sinDep ? 'NA' : ''));
+    onChange(syntheticEvent(ciudadKey,       sinDep ? 'NA' : ''));
   };
 
   const handleDepartamentoChange = (option) => {
-    onChange(syntheticEvent(departamentoKey, option?.value ?? ''));
-    onChange(syntheticEvent(ciudadKey,       ''));
+    const nuevoDep = option?.value ?? '';
+    const sinCiu   = nuevoDep !== '' && !tieneOpciones(citiesToOptions(paisValue, nuevoDep));
+    onChange(syntheticEvent(departamentoKey, nuevoDep));
+    onChange(syntheticEvent(ciudadKey,       sinCiu ? 'NA' : ''));
   };
 
   const handleCiudadChange = (option) => {
@@ -92,6 +103,8 @@ export function useUbicacion(formData, onChange, {
     selectedPais,
     selectedDepartamento,
     selectedCiudad,
+    paisSinDepartamentos,
+    departamentoSinCiudades,
     handlePaisChange,
     handleDepartamentoChange,
     handleCiudadChange,

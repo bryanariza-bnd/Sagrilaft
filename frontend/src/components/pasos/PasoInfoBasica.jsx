@@ -1,7 +1,7 @@
 import FormField from '../FormField';
 import LocationSelect from '../LocationSelect';
 import AlertasInconsistencia from '../AlertasInconsistencia';
-import { useUbicacion } from '../../hooks/useUbicacion';
+import { useUbicacion, NA_OPTION } from '../../hooks/useUbicacion';
 
 const OPCIONES_TIPO_CONTRAPARTE = [
   { value: 'proveedor', label: 'Proveedor' },
@@ -74,6 +74,7 @@ export default function PasoInfoBasica(props) {
   const {
     paisesOptions, departamentosOptions, ciudadesOptions,
     selectedPais, selectedDepartamento, selectedCiudad,
+    paisSinDepartamentos, departamentoSinCiudades,
     handlePaisChange, handleDepartamentoChange, handleCiudadChange,
   } = useUbicacion(formData, onChange);
 
@@ -190,23 +191,25 @@ export default function PasoInfoBasica(props) {
 
       <div className="form-row">
         <LocationSelect
-          label="País" name="pais"
+          label="País" name="pais" required
           value={selectedPais} onChange={handlePaisChange}
           options={paisesOptions}
           onOpenHelp={onOpenHelp} error={errors.pais}
         />
         <LocationSelect
           label="Departamento" name="departamento" required
-          value={selectedDepartamento} onChange={handleDepartamentoChange}
+          value={paisSinDepartamentos ? NA_OPTION : selectedDepartamento}
+          onChange={handleDepartamentoChange}
           options={departamentosOptions}
-          disabled={!formData.pais}
+          disabled={!formData.pais || paisSinDepartamentos}
           onOpenHelp={onOpenHelp} error={errors.departamento}
         />
         <LocationSelect
           label="Ciudad" name="ciudad" required
-          value={selectedCiudad} onChange={handleCiudadChange}
+          value={paisSinDepartamentos || departamentoSinCiudades ? NA_OPTION : selectedCiudad}
+          onChange={handleCiudadChange}
           options={ciudadesOptions}
-          disabled={!formData.departamento}
+          disabled={!formData.departamento || paisSinDepartamentos || departamentoSinCiudades}
           onOpenHelp={onOpenHelp} error={errors.ciudad}
         />
       </div>

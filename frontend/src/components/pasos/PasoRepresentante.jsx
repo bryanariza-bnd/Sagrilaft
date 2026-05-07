@@ -4,7 +4,7 @@ import FormField from '../FormField';
 import LocationSelect from '../LocationSelect';
 import NacionalidadSelect from '../NacionalidadSelect';
 import AlertasInconsistencia from '../AlertasInconsistencia';
-import { useUbicacion } from '../../hooks/useUbicacion';
+import { useUbicacion, NA_OPTION } from '../../hooks/useUbicacion';
 
 const TIPOS_DOC = [
   { value: 'CC',  label: 'Cédula de Ciudadanía' },
@@ -26,21 +26,31 @@ const today = new Date().toISOString().split('T')[0];
  * no usan selección jerárquica.
  */
 export default function PasoRepresentante({ formData, onChange, onOpenHelp, errors, alertasNombreRepresentante, alertasNumeroDocRepresentante }) {
-  const esNatural  = formData.tipo_persona === 'natural';
-  const defaultPais = formData.pais || '';
+  const esNatural = formData.tipo_persona === 'natural';
 
   // ── Bloque 1: Ciudad donde ejerce funciones ──────────────────────────────────
-  const ubFunciones = useUbicacion(formData, onChange, {
+  const {
+    paisesOptions:        paisesFuncionesOptions,
+    departamentosOptions: departamentosFuncionesOptions,
+    ciudadesOptions:      ciudadesFuncionesOptions,
+    selectedPais:         selectedPaisFunciones,
+    selectedDepartamento: selectedDepartamentoFunciones,
+    selectedCiudad:       selectedCiudadFunciones,
+    paisSinDepartamentos: paisesFuncionesSinDepartamentos,
+    departamentoSinCiudades: departamentoFuncionesSinCiudades,
+    handlePaisChange:         handlePaisFuncionesChange,
+    handleDepartamentoChange: handleDepartamentoFuncionesChange,
+    handleCiudadChange:       handleCiudadFuncionesChange,
+  } = useUbicacion(formData, onChange, {
     paisKey:         'pais_funciones',
     departamentoKey: 'departamento_funciones',
     ciudadKey:       'ciudad_funciones',
-    defaultPais,
   });
 
   // ── Bloque 2: Ciudad de Residencia (todas las ciudades del país, sin filtro) ─
   const ciudadesResidencia = useMemo(
-    () => City.getCitiesOfCountry(defaultPais || 'CO').map(c => ({ value: c.name, label: c.name })),
-    [defaultPais],
+    () => City.getCitiesOfCountry(formData.pais || 'CO').map(c => ({ value: c.name, label: c.name })),
+    [formData.pais],
   );
   const selectedCiudadResidencia = ciudadesResidencia.find(o => o.value === formData.ciudad_residencia) ?? null;
   const handleCiudadResidenciaChange = (option) =>
@@ -156,26 +166,26 @@ export default function PasoRepresentante({ formData, onChange, onOpenHelp, erro
       {/* ── Lugar donde ejerce funciones (País → Departamento → Ciudad) ─────── */}
       <div className="form-row">
         <LocationSelect
-          label="País (Funciones)" name="pais_funciones"
-          value={ubFunciones.selectedPais}
-          onChange={ubFunciones.handlePaisChange}
-          options={ubFunciones.paisesOptions}
-          onOpenHelp={onOpenHelp}
+          label="País (Funciones)" name="pais_funciones" required
+          value={selectedPaisFunciones}
+          onChange={handlePaisFuncionesChange}
+          options={paisesFuncionesOptions}
+          onOpenHelp={onOpenHelp} error={errors.pais_funciones}
         />
         <LocationSelect
-          label="Departamento (Funciones)" name="departamento_funciones"
-          value={ubFunciones.selectedDepartamento}
-          onChange={ubFunciones.handleDepartamentoChange}
-          options={ubFunciones.departamentosOptions}
-          disabled={!ubFunciones.selectedPais}
-          onOpenHelp={onOpenHelp}
+          label="Departamento (Funciones)" name="departamento_funciones" required
+          value={paisesFuncionesSinDepartamentos ? NA_OPTION : selectedDepartamentoFunciones}
+          onChange={handleDepartamentoFuncionesChange}
+          options={departamentosFuncionesOptions}
+          disabled={!formData.pais_funciones || paisesFuncionesSinDepartamentos}
+          onOpenHelp={onOpenHelp} error={errors.departamento_funciones}
         />
         <LocationSelect
           label="Ciudad donde ejerce funciones" name="ciudad_funciones" required
-          value={ubFunciones.selectedCiudad}
-          onChange={ubFunciones.handleCiudadChange}
-          options={ubFunciones.ciudadesOptions}
-          disabled={!ubFunciones.selectedDepartamento}
+          value={paisesFuncionesSinDepartamentos || departamentoFuncionesSinCiudades ? NA_OPTION : selectedCiudadFunciones}
+          onChange={handleCiudadFuncionesChange}
+          options={ciudadesFuncionesOptions}
+          disabled={!formData.departamento_funciones || paisesFuncionesSinDepartamentos || departamentoFuncionesSinCiudades}
           onOpenHelp={onOpenHelp} error={errors.ciudad_funciones}
         />
       </div>
