@@ -131,7 +131,7 @@ def _render_tabla(
         for f in filas_limpias
     )
     return (
-        "<section class='card'>"
+        "<section class='card card-tabla'>"
         f"<h2>{escape(titulo)}</h2>"
         "<div class='table-wrap'>"
         "<table>"
@@ -149,7 +149,7 @@ _CSS_BASE = """
     :root{
       --primary-500:#6366f1; --primary-600:#4f46e5; --primary-700:#4338ca; --primary-800:#3730a3; --primary-900:#312e81;
       --gray-50:#f8fafc; --gray-100:#f1f5f9; --gray-200:#e2e8f0; --gray-600:#475569; --gray-800:#1e293b; --gray-900:#0f172a;
-      --radius-lg:16px; --shadow-md:0 4px 6px -1px rgba(0,0,0,.10),0 2px 4px -1px rgba(0,0,0,.06);
+      --radius-lg:16px;
     }
     @page { size: A4; margin: 18mm 14mm; }
     *{ box-sizing:border-box; }
@@ -169,22 +169,23 @@ _CSS_BASE = """
     .content{ margin-top:14px; }
     .card{
       background:#fff; border:1px solid var(--gray-200);
-      border-radius: var(--radius-lg); box-shadow: 0 4px 6px -1px rgba(0,0,0,.10),0 2px 4px -1px rgba(0,0,0,.06);
+      border-radius: var(--radius-lg);
       padding:14px 16px; margin: 12px 0;
     }
     .card h2{ margin:0 0 10px 0; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--gray-600); }
     .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px 14px; }
     .kv{ border:1px solid var(--gray-200); border-radius:12px; padding:10px 10px; background:var(--gray-50); }
     .k{ font-size:10px; color:var(--gray-600); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
-    .v{ margin-top:4px; font-size:11px; font-weight:600; color:var(--gray-800); white-space:pre-wrap; }
+    .v{ margin-top:4px; font-size:11px; font-weight:600; color:var(--gray-800); white-space:pre-wrap; overflow-wrap:break-word; }
     .table-wrap{ overflow:hidden; border-radius:12px; border:1px solid var(--gray-200); }
-    table{ width:100%; border-collapse:collapse; font-size:10px; }
-    thead th{ text-align:left; padding:8px 10px; background:var(--gray-50); color:var(--gray-600); text-transform:uppercase; letter-spacing:.05em; font-weight:800; border-bottom:1px solid var(--gray-200); }
-    tbody td{ padding:8px 10px; border-bottom:1px solid var(--gray-200); vertical-align:top; }
+    table{ width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
+    thead th{ text-align:left; padding:8px 10px; background:var(--gray-50); color:var(--gray-600); text-transform:uppercase; letter-spacing:.05em; font-weight:800; border-bottom:1px solid var(--gray-200); overflow-wrap:break-word; }
+    tbody td{ padding:8px 10px; border-bottom:1px solid var(--gray-200); vertical-align:top; overflow-wrap:break-word; }
     tbody tr:last-child td{ border-bottom:0; }
     .muted{ color:var(--gray-600); font-size:10px; margin-top:6px; }
     .footer{ margin-top:10px; font-size:9px; color:var(--gray-600); }
     .card{ page-break-inside:avoid; }
+    .card-tabla{ page-break-inside:auto; }
     .paso{ page-break-before:always; }
     .paso-primero{ page-break-before:auto; }
     .paso-titulo{
@@ -212,7 +213,64 @@ class _SeccionTabla:
     transformar: Optional[Callable[..., List[Dict[str, Any]]]] = None
 
 
-_SeccionFormulario = Union[_SeccionCampos, _SeccionTabla]
+@dataclass(frozen=True)
+class _SeccionNarrativaFirma:
+    titulo: str
+
+
+_SeccionFormulario = Union[_SeccionCampos, _SeccionTabla, _SeccionNarrativaFirma]
+
+
+_MESES_ES = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+]
+
+
+def _componer_texto_firma(datos: Dict[str, Any]) -> str:
+    dia    = datos.get('dia_firma')
+    mes    = datos.get('mes_firma')
+    year   = datos.get('year_firma')
+    ciudad = (datos.get('ciudad_firma') or '').strip()
+
+    dia_str    = str(int(dia))  if dia    else '____'
+    mes_str    = _MESES_ES[int(mes) - 1] if mes and 1 <= int(mes) <= 12 else '_____________'
+    year_str   = str(int(year)) if year   else '_______'
+    ciudad_str = ciudad         if ciudad else '___________________'
+
+    return (
+        f"En constancia de haber leído y acatado lo anterior firmo el presente documento "
+        f"a los {dia_str} días del mes de {mes_str} "
+        f"de {year_str} en la ciudad de {ciudad_str}."
+    )
+
+
+def _render_narrativa_firma(titulo: str, datos: Dict[str, Any]) -> str:
+    texto = escape(_componer_texto_firma(datos))
+    # {{S:R1*}} es el text tag nativo de ZohoSign para firma obligatoria del primer firmante.
+    # SIN overflow:hidden → WeasyPrint incluye todos los espacios en la capa de texto del PDF
+    # → ZohoSign mide el ancho real del tag y crea el campo de firma a ese ancho.
+    # font-size:24px → cada espacio es más ancho en el PDF → campo más amplio.
+    # Color blanco = invisible en impresión.
+    _espacios = " " * 120
+    linea_firma = (
+        "<div style='margin-top:24px;'>"
+        "<div style='font-size:11px; color:var(--gray-800); margin-bottom:6px;'>"
+        "Firma Representante Legal"
+        "</div>"
+        f"<div style='border-bottom:1.5px solid var(--gray-800); color:white;"
+        f"            font-size:24px; white-space:nowrap; min-height:70px;'>"
+        f"{{{{S:R1*{_espacios}}}}}"
+        f"</div>"
+        "</div>"
+    )
+    return (
+        "<section class='card' style='page-break-before:always;'>"
+        f"<h2>{escape(titulo)}</h2>"
+        f"<p style='font-size:11px; color:var(--gray-800); line-height:1.7;'>{texto}</p>"
+        f"{linea_firma}"
+        "</section>"
+    )
 
 
 @dataclass(frozen=True)
@@ -363,11 +421,7 @@ _PASOS_FORMULARIO: List[_PasoFormulario] = [
             ("Declaración origen de fondos",      "declaracion_origen_fondos"),
             ("Origen de fondos (detalle)",        "origen_fondos"),
         ]),
-        _SeccionCampos("Firma", [
-            ("Nombre", "nombre_firma"),
-            ("Fecha",  "fecha_firma"),
-            ("Ciudad", "ciudad_firma"),
-        ]),
+        _SeccionNarrativaFirma("Firma Representante Legal"),
     ]),
 ]
 
@@ -375,6 +429,8 @@ _PASOS_FORMULARIO: List[_PasoFormulario] = [
 # ─── Constructor HTML ─────────────────────────────────────────────────────────
 
 def _renderizar_seccion(seccion: _SeccionFormulario, datos: Dict[str, Any]) -> str:
+    if isinstance(seccion, _SeccionNarrativaFirma):
+        return _render_narrativa_firma(seccion.titulo, datos)
     if isinstance(seccion, _SeccionCampos):
         return _render_seccion_campos(
             seccion.titulo,

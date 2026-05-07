@@ -143,39 +143,23 @@ class ZohoSignService:
         solicitud   = datos_crear["requests"]
         request_id  = solicitud["request_id"]
         action_id   = solicitud["actions"][0]["action_id"]
-        doc_info    = solicitud["document_ids"][0]
-        document_id = doc_info["document_id"]
-        pagina_firma = doc_info["total_pages"] - 1  # 0-indexed; el PDF siempre termina en la página de firma
+        doc_info = solicitud["document_ids"][0]
 
         logger.info(
             "Borrador ZohoSign creado: request_id=%s action_id=%s páginas=%s",
             request_id, action_id, doc_info["total_pages"],
         )
 
-        # ── Paso 2: colocar campo de firma y enviar ───────────────────────────
-        # Coordenadas en puntos PDF (1pt = 1/72 in). A4 = 595 x 842pt.
-        # @page margin: 18mm=51pt (arriba), 14mm=40pt (lados). Área útil: 515pt.
-        # El campo de firma se ubica dentro del card "Firma" del Paso 8 (última página),
-        # debajo del grid Nombre/Fecha/Ciudad — x/width descontando padding del card (16px=12pt).
+        # ── Paso 2: enviar a firma ────────────────────────────────────────────
+        # Los campos de firma se configuran automáticamente por el text tag {{S:R1*}}
+        # embebido en el PDF durante la generación. ZohoSign lo detecta al subir el
+        # documento (paso 1) y no necesita configuración adicional aquí.
         data_enviar = {
             "requests": {
                 "actions": [
                     {
                         "action_id":   action_id,
                         "action_type": "SIGN",
-                        "fields": [
-                            {
-                                "field_type_name": "Signature",
-                                "document_id":     document_id,
-                                "action_id":       action_id,
-                                "is_mandatory":    True, # Para Campo Obligatorio   
-                                "page_no":         pagina_firma,
-                                "x_coord":         60   ,   # 40 (margen pág.) + 12 (padding card)
-                                "y_coord":         240,  # dentro del card Firma, bajo el grid
-                                "abs_width":       230,  # 515 − 2×12 (padding card izq+der)
-                                "abs_height":      50,
-                            }
-                        ],
                     }
                 ]
             }
