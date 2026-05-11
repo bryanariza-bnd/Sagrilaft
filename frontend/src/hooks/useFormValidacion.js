@@ -6,7 +6,7 @@
  */
 import { useState, useCallback } from 'react';
 import helpTexts from '../data/helpTexts';
-import { CAMPOS_REQUERIDOS } from '../data/formularioConfig';
+import { CAMPOS_REQUERIDOS, CAMPOS_CONDICIONALES } from '../data/formularioConfig';
 import { validarReglasEspeciales } from '../utils/inputValidation';
 
 export function useFormValidacion(formData) {
@@ -30,24 +30,14 @@ export function useFormValidacion(formData) {
       if (!camposErr[campo]) camposErr[campo] = mensaje;
     }
 
-    // Campos condicionales: solo obligatorios según el tipo de persona
-    if (stepNum === 3 && formData.tipo_persona === 'natural') {
-      if (!formData.ciudad_residencia) {
-        camposErr.ciudad_residencia = 'Ciudad de Residencia es obligatoria';
-      }
-    }
-
-    // Sección 8 — solo para Persona Jurídica
-    if (stepNum === 7 && formData.tipo_persona === 'juridica') {
-      const camposClasificacion = [
-        'actividad_clasificacion', 'actividad_especifica', 'sector', 'superintendencia',
-        'responsabilidades_renta', 'autorretenedor', 'responsabilidades_iva', 'regimen_iva', 'gran_contribuyente',
-        'entidad_sin_animo_lucro', 'retencion_ica', 'impuesto_ica', 'entidad_oficial', 'exento_retencion_fuente',
-      ];
-      for (const campo of camposClasificacion) {
-        const valor = formData[campo];
-        if (!valor || (typeof valor === 'string' && !valor.trim())) {
-          camposErr[campo] = `${helpTexts[campo]?.titulo || campo} es obligatorio`;
+    // Campos condicionales: declarados en formularioConfig — agregar nuevos allá sin tocar aquí
+    for (const { condicion, campos: camposCondicionados, mensajes = {} } of (CAMPOS_CONDICIONALES[stepNum] || [])) {
+      if (condicion(formData)) {
+        for (const campo of camposCondicionados) {
+          const valor = formData[campo];
+          if (!valor || (typeof valor === 'string' && !valor.trim())) {
+            camposErr[campo] = mensajes[campo] ?? `${helpTexts[campo]?.titulo || campo} es obligatorio`;
+          }
         }
       }
     }

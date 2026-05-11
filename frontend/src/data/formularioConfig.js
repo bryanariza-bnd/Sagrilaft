@@ -34,6 +34,41 @@ export const DOCUMENTOS_CONFIG = [
 ];
 
 /**
+ * Campos exclusivos de Persona Natural.
+ * Fuente única de verdad — espeja _CAMPOS_PERSONA_NATURAL del backend.
+ */
+export const CAMPOS_PERSONA_NATURAL = ['ciudad_residencia', 'direccion_residencia'];
+
+/**
+ * Campos obligatorios condicionalmente por paso, según el tipo de persona.
+ * Cada entrada es una lista de { condicion, campos } — si condicion(formData) es true,
+ * esos campos se validan como obligatorios. Agregar nuevos casos aquí sin tocar validarPaso.
+ */
+export const CAMPOS_CONDICIONALES = {
+  3: [
+    {
+      condicion: (fd) => fd.tipo_persona === 'natural',
+      campos: CAMPOS_PERSONA_NATURAL,
+      mensajes: {
+        ciudad_residencia: 'Ciudad de Residencia es obligatoria',
+        direccion_residencia: 'Dirección de Residencia es obligatoria',
+      },
+    },
+  ],
+  7: [
+    {
+      condicion: (fd) => fd.tipo_persona === 'juridica',
+      campos: [
+        'actividad_clasificacion', 'actividad_especifica', 'sector', 'superintendencia',
+        'responsabilidades_renta', 'autorretenedor', 'responsabilidades_iva', 'regimen_iva',
+        'gran_contribuyente', 'entidad_sin_animo_lucro', 'retencion_ica', 'impuesto_ica',
+        'entidad_oficial', 'exento_retencion_fuente',
+      ],
+    },
+  ],
+};
+
+/**
  * Campos obligatorios por paso.
  * Fuente única de verdad para validación en useFormulario.
  */
