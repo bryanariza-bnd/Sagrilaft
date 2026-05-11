@@ -126,6 +126,17 @@ body {
   z-index: 1;
 }
 
+.btn-recuperar-sesion {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-sm);
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
 .main-content {
   flex: 1;
   max-width: 960px;

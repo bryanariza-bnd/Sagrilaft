@@ -82,16 +82,7 @@ export default function FormularioSagrilaft() {
           <button
             type="button"
             onClick={recuperacion.abrirModal}
-            style={{
-              marginTop: '8px',
-              background: 'transparent',
-              border: '1px solid rgba(255,255,255,0.35)',
-              color: 'rgba(255,255,255,0.85)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '4px 14px',
-              fontSize: '0.78rem',
-              cursor: 'pointer',
-            }}
+            className="btn-recuperar-sesion"
           >
             ¿Tiene un formulario previo? Recuperar sesión
           </button>
