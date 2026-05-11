@@ -7,7 +7,7 @@
  * SRP: única responsabilidad = coordinar los sub-hooks y exponer la interfaz pública.
  * DIP: los pasos dependen de esta interfaz, no de implementaciones concretas.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 import { TOTAL_STEPS, CAMPOS_REQUERIDOS } from '../data/formularioConfig';
 import { useFormValidacion } from './useFormValidacion';
@@ -253,16 +253,27 @@ export function useFormulario() {
     }
   }, [estadoConfirmacion, documentos, formularioId]);
 
+  /**
+   * Upsert remoto: crea el formulario si aún no existe en el servidor,
+   * o actualiza el existente. Devuelve el ID definitivo en ambos casos.
+   * Punto único de verdad para el patrón "crear-o-actualizar" que comparten
+   * handleSaveDraft y handleSubmit.
+   */
+  const _sincronizarConServidor = async () => {
+    if (!formularioId) {
+      const result = await api.crearFormulario(_buildPayload());
+      setFormularioId(result.id);
+      setCodigoPeticion(result.codigo_peticion);
+      return result.id;
+    }
+    await api.actualizarFormulario(formularioId, _buildPayload());
+    return formularioId;
+  };
+
   const handleSaveDraft = async () => {
     setSaving(true);
     try {
-      if (!formularioId) {
-        const result = await api.crearFormulario(_buildPayload());
-        setFormularioId(result.id);
-        setCodigoPeticion(result.codigo_peticion);
-      } else {
-        await api.actualizarFormulario(formularioId, _buildPayload());
-      }
+      await _sincronizarConServidor();
       alert('✅ Borrador guardado exitosamente');
     } catch (err) {
       console.error('Error guardando borrador:', err);
@@ -282,22 +293,32 @@ export function useFormulario() {
     });
   }, [aplicarErrores]);
 
+  /**
+   * HOF: envuelve cualquier handler de tabla para que, tras ejecutarse,
+   * limpie automáticamente las claves de error del paso correspondiente.
+   * Reemplaza 15 useCallback idénticos en estructura: fn(...args) + limpiarClavesError(claves).
+   */
+  const conLimpieza = useCallback(
+    (fn, claves) => (...args) => { fn(...args); limpiarClavesError(claves); },
+    [limpiarClavesError],
+  );
+
   // ── Handlers de tablas con limpieza de errores ──────────────────────────────
-  const onJuntaChange              = useCallback((...args)   => { handleJuntaChange(...args);              limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleJuntaChange,              limpiarClavesError]);
-  const onJuntaTipoIdChange        = useCallback((idx, tipo) => { handleJuntaTipoIdChange(idx, tipo);      limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleJuntaTipoIdChange,        limpiarClavesError]);
-  const onAccionistaChange         = useCallback((...args)   => { handleAccionistaChange(...args);         limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleAccionistaChange,         limpiarClavesError]);
-  const onAccionistaTipoIdChange   = useCallback((idx, tipo) => { handleAccionistaTipoIdChange(idx, tipo); limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleAccionistaTipoIdChange,   limpiarClavesError]);
-  const onBeneficiarioChange       = useCallback((...args)   => { handleBeneficiarioChange(...args);       limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleBeneficiarioChange,       limpiarClavesError]);
-  const onBeneficiarioTipoIdChange = useCallback((idx, tipo) => { handleBeneficiarioTipoIdChange(idx, tipo); limpiarClavesError(CLAVES_ERROR_PASO4); }, [handleBeneficiarioTipoIdChange, limpiarClavesError]);
-  const onEliminarJuntaMember      = useCallback((idx)       => { eliminarJuntaMember(idx);                limpiarClavesError(CLAVES_ERROR_PASO4); }, [eliminarJuntaMember,            limpiarClavesError]);
-  const onEliminarAccionista       = useCallback((idx)       => { eliminarAccionista(idx);                 limpiarClavesError(CLAVES_ERROR_PASO4); }, [eliminarAccionista,             limpiarClavesError]);
-  const onEliminarBeneficiario     = useCallback((idx)       => { eliminarBeneficiario(idx);               limpiarClavesError(CLAVES_ERROR_PASO4); }, [eliminarBeneficiario,           limpiarClavesError]);
-  const onReferenciaChange         = useCallback((...args)   => { handleReferenciaChange(...args);         limpiarClavesError(CLAVES_ERROR_PASO6); }, [handleReferenciaChange,         limpiarClavesError]);
-  const onReferenciaBancariaChange = useCallback((...args)   => { handleReferenciaBancariaChange(...args); limpiarClavesError(CLAVES_ERROR_PASO6); }, [handleReferenciaBancariaChange, limpiarClavesError]);
-  const onEliminarReferencia       = useCallback((idx)       => { eliminarReferencia(idx);                 limpiarClavesError(CLAVES_ERROR_PASO6); }, [eliminarReferencia,             limpiarClavesError]);
-  const onEliminarReferenciaBancaria = useCallback((idx)     => { eliminarReferenciaBancaria(idx);         limpiarClavesError(CLAVES_ERROR_PASO6); }, [eliminarReferenciaBancaria,     limpiarClavesError]);
-  const onInfoBancariaPagosChange  = useCallback((...args)   => { handleInfoBancariaPagosChange(...args);  limpiarClavesError(CLAVES_ERROR_PASO7); }, [handleInfoBancariaPagosChange,  limpiarClavesError]);
-  const onEliminarInfoBancariaPagos = useCallback((idx)      => { eliminarInfoBancariaPagos(idx);          limpiarClavesError(CLAVES_ERROR_PASO7); }, [eliminarInfoBancariaPagos,      limpiarClavesError]);
+  const onJuntaChange              = useMemo(() => conLimpieza(handleJuntaChange,              CLAVES_ERROR_PASO4), [conLimpieza, handleJuntaChange]);
+  const onJuntaTipoIdChange        = useMemo(() => conLimpieza(handleJuntaTipoIdChange,        CLAVES_ERROR_PASO4), [conLimpieza, handleJuntaTipoIdChange]);
+  const onAccionistaChange         = useMemo(() => conLimpieza(handleAccionistaChange,         CLAVES_ERROR_PASO4), [conLimpieza, handleAccionistaChange]);
+  const onAccionistaTipoIdChange   = useMemo(() => conLimpieza(handleAccionistaTipoIdChange,   CLAVES_ERROR_PASO4), [conLimpieza, handleAccionistaTipoIdChange]);
+  const onBeneficiarioChange       = useMemo(() => conLimpieza(handleBeneficiarioChange,       CLAVES_ERROR_PASO4), [conLimpieza, handleBeneficiarioChange]);
+  const onBeneficiarioTipoIdChange = useMemo(() => conLimpieza(handleBeneficiarioTipoIdChange, CLAVES_ERROR_PASO4), [conLimpieza, handleBeneficiarioTipoIdChange]);
+  const onEliminarJuntaMember      = useMemo(() => conLimpieza(eliminarJuntaMember,            CLAVES_ERROR_PASO4), [conLimpieza, eliminarJuntaMember]);
+  const onEliminarAccionista       = useMemo(() => conLimpieza(eliminarAccionista,             CLAVES_ERROR_PASO4), [conLimpieza, eliminarAccionista]);
+  const onEliminarBeneficiario     = useMemo(() => conLimpieza(eliminarBeneficiario,           CLAVES_ERROR_PASO4), [conLimpieza, eliminarBeneficiario]);
+  const onReferenciaChange         = useMemo(() => conLimpieza(handleReferenciaChange,         CLAVES_ERROR_PASO6), [conLimpieza, handleReferenciaChange]);
+  const onReferenciaBancariaChange = useMemo(() => conLimpieza(handleReferenciaBancariaChange, CLAVES_ERROR_PASO6), [conLimpieza, handleReferenciaBancariaChange]);
+  const onEliminarReferencia       = useMemo(() => conLimpieza(eliminarReferencia,             CLAVES_ERROR_PASO6), [conLimpieza, eliminarReferencia]);
+  const onEliminarReferenciaBancaria = useMemo(() => conLimpieza(eliminarReferenciaBancaria,   CLAVES_ERROR_PASO6), [conLimpieza, eliminarReferenciaBancaria]);
+  const onInfoBancariaPagosChange  = useMemo(() => conLimpieza(handleInfoBancariaPagosChange,  CLAVES_ERROR_PASO7), [conLimpieza, handleInfoBancariaPagosChange]);
+  const onEliminarInfoBancariaPagos = useMemo(() => conLimpieza(eliminarInfoBancariaPagos,     CLAVES_ERROR_PASO7), [conLimpieza, eliminarInfoBancariaPagos]);
 
   // ── Navegación ───────────────────────────────────────────────────────────
 
@@ -346,53 +367,66 @@ export function useFormulario() {
     }
   };
 
-  const handleSubmit = async () => {
-    const allErrors = {};
+  // ── Helpers de envío final ──────────────────────────────────────────────────
+
+  /**
+   * Recolecta todos los errores de validación para el envío final.
+   * Función pura: solo consulta estado, sin efectos secundarios.
+   */
+  const _recopilarErroresEnvio = () => {
+    const errores = {};
     for (let s = 2; s <= TOTAL_STEPS; s++) {
-      Object.assign(allErrors, validarPaso(s));
+      Object.assign(errores, validarPaso(s));
     }
-    Object.assign(allErrors, validarTablasPaso4({
+    Object.assign(errores, validarTablasPaso4({
       juntaDirectiva, accionistas, beneficiarios,
       tipoPersona: formData.tipo_persona,
     }));
-    Object.assign(allErrors, validarTablasPaso6({ referenciasComerciales, referenciasBancarias }));
-    Object.assign(allErrors, validarTablasPaso7({ infoBancariaPagos }));
+    Object.assign(errores, validarTablasPaso6({ referenciasComerciales, referenciasBancarias }));
+    Object.assign(errores, validarTablasPaso7({ infoBancariaPagos }));
     if (!formData.autorizacion_datos) {
-      allErrors.autorizacion_datos = 'Debe aceptar la autorización de tratamiento de datos';
+      errores.autorizacion_datos = 'Debe aceptar la autorización de tratamiento de datos';
     }
     if (!formData.declaracion_origen_fondos) {
-      allErrors.declaracion_origen_fondos = 'Debe aceptar la declaración de origen de fondos';
+      errores.declaracion_origen_fondos = 'Debe aceptar la declaración de origen de fondos';
     }
-    aplicarErrores(allErrors);
+    return errores;
+  };
 
-    if (Object.keys(allErrors).length > 0) {
-      const tieneErroresPaso4 = CLAVES_ERROR_PASO4.some(k => allErrors[k]);
-      const tieneErroresPaso7 = CLAVES_ERROR_PASO7.some(k => allErrors[k]);
-      const firstFailStep = [2, 3, 4, 5, 6, 7, 8].find(s => {
-        if (s === 4) return tieneErroresPaso4;
-        if (s === 7) return tieneErroresPaso7;
-        return (CAMPOS_REQUERIDOS[s] || []).some(f => allErrors[f]) ||
-          (s === 8 && (allErrors.autorizacion_datos || allErrors.declaracion_origen_fondos));
-      });
-      if (firstFailStep) {
-        setStep(firstFailStep);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+  /**
+   * Navega al primer paso que contiene errores tras un intento de envío fallido.
+   * Centralizar aquí la búsqueda evita que handleSubmit conozca la estructura
+   * interna de qué claves corresponden a cada paso.
+   */
+  const _navegarAlPrimerPasoConError = (errores) => {
+    const tieneErroresPaso4 = CLAVES_ERROR_PASO4.some(k => errores[k]);
+    const tieneErroresPaso7 = CLAVES_ERROR_PASO7.some(k => errores[k]);
+    const primerPaso = [2, 3, 4, 5, 6, 7, 8].find(s => {
+      if (s === 4) return tieneErroresPaso4;
+      if (s === 7) return tieneErroresPaso7;
+      return (CAMPOS_REQUERIDOS[s] || []).some(f => errores[f]) ||
+        (s === 8 && (errores.autorizacion_datos || errores.declaracion_origen_fondos));
+    });
+    if (primerPaso) {
+      setStep(primerPaso);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSubmit = async () => {
+    const errores = _recopilarErroresEnvio();
+    aplicarErrores(errores);
+
+    if (Object.keys(errores).length > 0) {
+      _navegarAlPrimerPasoConError(errores);
       return;
     }
 
     setSaving(true);
     try {
       const credenciales = recuperacion.credencialesRef?.current ?? null;
-      if (!formularioId) {
-        const result = await api.crearFormulario(_buildPayload());
-        setFormularioId(result.id);
-        setCodigoPeticion(result.codigo_peticion);
-        await api.enviarFormulario(result.id, credenciales);
-      } else {
-        await api.actualizarFormulario(formularioId, _buildPayload());
-        await api.enviarFormulario(formularioId, credenciales);
-      }
+      const id = await _sincronizarConServidor();
+      await api.enviarFormulario(id, credenciales);
       limpiarBorrador();
       setSubmitted(true);
     } catch (err) {
