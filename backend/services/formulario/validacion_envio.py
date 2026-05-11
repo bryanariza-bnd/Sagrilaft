@@ -87,6 +87,8 @@ class ValidadorEnvioFormulario:
         ("correo_representante",    "Correo del Representante"),
         ("telefono_representante",  "Teléfono del Representante"),
         ("direccion_funciones",     "Dirección donde ejerce funciones"),
+            ("pais_funciones",          "País donde ejerce funciones"),
+        ("departamento_funciones",  "Departamento donde ejerce funciones"),
         ("ciudad_funciones",        "Ciudad donde ejerce funciones"),
         ("actividad_economica",     "Actividad Económica Principal"),
         ("codigo_ciiu",             "Código CIIU"),
@@ -109,6 +111,11 @@ class ValidadorEnvioFormulario:
         ("mes_firma",      "Mes de Firma"),
         ("year_firma",     "Año de Firma"),
         ("ciudad_firma",   "Ciudad de Firma"),
+    ]
+
+    _CAMPOS_PERSONA_NATURAL: List[Tuple[str, str]] = [
+        ('direccion_residencia', "Dirección de Residencia"),
+        ('ciudad_residencia', "Ciudad de Residencia"),
     ]
 
     _CAMPOS_CLASIFICACION_JURIDICA: List[Tuple[str, str]] = [
@@ -193,6 +200,9 @@ class ValidadorEnvioFormulario:
         errores.extend(self._validar_campos_fecha_firma(formulario))
         errores.extend(self._validar_formatos(formulario))
 
+        if not self._es_persona_juridica(formulario):
+            errores.extend(self._validar_campos_persona_natural(formulario))
+
         if self._es_persona_juridica(formulario):
             errores.extend(self._validar_clasificacion_tributaria(formulario))
             errores.extend(self._validar_junta_directiva(formulario))
@@ -202,6 +212,9 @@ class ValidadorEnvioFormulario:
         return errores
 
     # ── Validadores por sección ───────────────────────────────────────────────
+
+    def _validar_campos_persona_natural(self, formulario: Formulario) -> List[ErrorValidacion]:
+        return self._errores_presencia(formulario, self._CAMPOS_PERSONA_NATURAL)
 
     def _validar_clasificacion_tributaria(self, formulario: Formulario) -> List[ErrorValidacion]:
         return self._errores_presencia(formulario, self._CAMPOS_CLASIFICACION_JURIDICA)
