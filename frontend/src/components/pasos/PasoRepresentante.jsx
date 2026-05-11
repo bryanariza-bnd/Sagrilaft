@@ -195,9 +195,9 @@ export default function PasoRepresentante({ formData, onChange, onOpenHelp, erro
         <>
           <div className="form-row single">
             <FormField
-              label="Dirección de Residencia (SOLO PARA PERSONA NATURAL)" name="direccion_residencia"
-              value={formData.direccion_residencia} onChange={onChange}
-              onOpenHelp={onOpenHelp}
+              label="Dirección de Residencia (SOLO PARA PERSONA NATURAL)" name="direccion_residencia" required
+              value={formData.direccion_residencia} onChange={onChange} 
+              onOpenHelp={onOpenHelp} error={errors.direccion_residencia}
             />
           </div>
 
