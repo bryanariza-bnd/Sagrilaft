@@ -5,12 +5,12 @@ import { DOCUMENTOS_CONFIG } from '../../data/formularioConfig';
 /**
  * Paso 1 — Documentos Adjuntos.
  *
- * Renderiza los campos de carga según el tipo de persona y muestra alertas
+ * Renderiza todos los campos de carga de documentos y muestra alertas
  * de inconsistencia cuando la razón social extraída de un documento no coincide
  * con la ingresada en el formulario.
  */
 export default function PasoDocumentos({
-  formData, documentos, onFileChange, onRemoveFile, onOpenHelp, uploadingDoc, eliminandoDoc,
+  documentos, onFileChange, onRemoveFile, onOpenHelp, uploadingDoc, eliminandoDoc,
   alertasRazonSocial, alertasNit, alertasNombreRepresentante, alertasNumeroDocRepresentante, alertasDireccion,
 }) {
   return (
@@ -30,24 +30,21 @@ export default function PasoDocumentos({
       <AlertasInconsistencia alertas={alertasNumeroDocRepresentante} tipoCampo="No. de Identificación del representante sin resolver" nombreCampo="No. de Identificación" />
       <AlertasInconsistencia alertas={alertasDireccion}            tipoCampo="dirección sin resolver"                           nombreCampo="Dirección" />
 
-      {DOCUMENTOS_CONFIG
-        .filter(d => !d.soloJuridica || formData.tipo_persona !== 'natural')
-        .map(d => (
-          <FileUploadField
-            key={d.tipoDoc}
-            label={d.label}
-            tipoDoc={d.tipoDoc}
-            documentos={documentos}
-            onFileChange={onFileChange}
-            onRemove={onRemoveFile}
-            onOpenHelp={onOpenHelp}
-            accepted={d.accepted}
-            hint={d.hint}
-            uploading={uploadingDoc[d.tipoDoc]}
-            eliminando={eliminandoDoc && eliminandoDoc[d.tipoDoc]}
-          />
-        ))
-      }
+      {DOCUMENTOS_CONFIG.map(d => (
+        <FileUploadField
+          key={d.tipoDoc}
+          label={d.label}
+          tipoDoc={d.tipoDoc}
+          documentos={documentos}
+          onFileChange={onFileChange}
+          onRemove={onRemoveFile}
+          onOpenHelp={onOpenHelp}
+          accepted={d.accepted}
+          hint={d.hint}
+          uploading={uploadingDoc[d.tipoDoc]}
+          eliminando={eliminandoDoc && eliminandoDoc[d.tipoDoc]}
+        />
+      ))}
     </div>
   );
 }

@@ -22,15 +22,15 @@ export const CARGOS_JUNTA_DIRECTIVA = [
 
 /**
  * Documentos adjuntos requeridos.
- * soloJuridica: true → se omite para Persona Natural.
+ * Todos se muestran siempre, independientemente del tipo de persona.
  */
 export const DOCUMENTOS_CONFIG = [
-  { label: 'Cédula del Representante Legal',                   tipoDoc: 'cedula_representante',   accepted: '.pdf,.jpg,.jpeg,.png', soloJuridica: true  },
-  { label: 'Certificado de Existencia y Representación Legal', tipoDoc: 'certificado_existencia', accepted: '.pdf', hint: 'No mayor a 30 días', soloJuridica: true  },
-  { label: 'Estados Financieros',                              tipoDoc: 'estados_financieros',    accepted: '.pdf', soloJuridica: true  },
-  { label: 'Declaración de Renta',                             tipoDoc: 'declaracion_renta',      accepted: '.pdf', soloJuridica: true  },
-  { label: 'RUT (Registro Único Tributario)',                  tipoDoc: 'rut',                    accepted: '.pdf', hint: 'Debe ser del año en curso', soloJuridica: false },
-  { label: 'Referencias Bancarias',                            tipoDoc: 'referencias_bancarias',  accepted: '.pdf', soloJuridica: false },
+  { label: 'Cédula del Representante Legal',                   tipoDoc: 'cedula_representante',   accepted: '.pdf,.jpg,.jpeg,.png' },
+  { label: 'Certificado de Existencia y Representación Legal', tipoDoc: 'certificado_existencia', accepted: '.pdf', hint: 'No mayor a 30 días' },
+  { label: 'Estados Financieros',                              tipoDoc: 'estados_financieros',    accepted: '.pdf' },
+  { label: 'Declaración de Renta',                             tipoDoc: 'declaracion_renta',      accepted: '.pdf' },
+  { label: 'RUT (Registro Único Tributario)',                  tipoDoc: 'rut',                    accepted: '.pdf', hint: 'Debe ser del año en curso' },
+  { label: 'Referencias Bancarias',                            tipoDoc: 'referencias_bancarias',  accepted: '.pdf' },
 ];
 
 /**
