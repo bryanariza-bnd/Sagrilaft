@@ -16,7 +16,7 @@ import { useFormPersistencia } from './useFormPersistencia';
 import { useRecuperacionSesion } from './useRecuperacionSesion';
 import { useAlertasInconsistencia } from './useAlertasInconsistencia';
 import {
-  validarTablasPaso4, CLAVES_ERROR_PASO4,
+  validarTablasPaso4, CLAVES_ERROR_PASO4, purgarFilasVaciasPaso4,
   validarTablasPaso6, CLAVES_ERROR_PASO6, purgarFilasVaciasPaso6,
   validarTablasPaso7, CLAVES_ERROR_PASO7, purgarFilasVaciasPaso7,
 } from '../utils/validacionTablas';
@@ -72,15 +72,20 @@ export function useFormulario() {
    */
   const _buildPayload = () => {
     const esPersonaJuridica = formData.tipo_persona === 'juridica';
+    const paso4 = esPersonaJuridica
+      ? purgarFilasVaciasPaso4({ juntaDirectiva, accionistas, beneficiarios })
+      : { juntaDirectiva: [], accionistas: [], beneficiarios: [] };
+    const paso6 = purgarFilasVaciasPaso6({ referenciasComerciales, referenciasBancarias });
+    const paso7 = purgarFilasVaciasPaso7({ infoBancariaPagos });
     return sanitizarPayload({
       ...formData,
       pagina_actual: step,
-      junta_directiva:    esPersonaJuridica ? juntaDirectiva : [],
-      accionistas:        esPersonaJuridica ? accionistas    : [],
-      beneficiario_final: esPersonaJuridica ? beneficiarios  : [],
-      referencias_comerciales:    referenciasComerciales,
-      referencias_bancarias:      referenciasBancarias,
-      informacion_bancaria_pagos: infoBancariaPagos,
+      junta_directiva:    paso4.juntaDirectiva,
+      accionistas:        paso4.accionistas,
+      beneficiario_final: paso4.beneficiarios,
+      referencias_comerciales:    paso6.referenciasComerciales,
+      referencias_bancarias:      paso6.referenciasBancarias,
+      informacion_bancaria_pagos: paso7.infoBancariaPagos,
     });
   };
 
@@ -350,7 +355,13 @@ export function useFormulario() {
     }
     aplicarErrores(newErrors);
     if (Object.keys(newErrors).length === 0) {
-      if (step === 6) {
+      if (step === 4) {
+        const purged = purgarFilasVaciasPaso4({ juntaDirectiva, accionistas, beneficiarios });
+        setJuntaDirectiva(purged.juntaDirectiva);
+        setAccionistas(purged.accionistas);
+        setBeneficiarios(purged.beneficiarios);
+      }
+      else if (step === 6) {
         const purged = purgarFilasVaciasPaso6({ referenciasComerciales, referenciasBancarias });
         setReferenciasComerciales(purged.referenciasComerciales);
         setReferenciasBancarias(purged.referenciasBancarias);

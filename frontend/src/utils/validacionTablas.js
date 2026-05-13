@@ -286,6 +286,22 @@ export const CLAVES_ERROR_PASO4 = Object.values(ESQUEMAS_TABLA).flatMap((e) =>
   [e.errorKey, e.errorKeyFilas, e.errorKeySuma].filter(Boolean),
 );
 
+/**
+ * Elimina filas donde todos los campos obligatorios están vacíos.
+ * Se llama al avanzar del paso 4 para evitar persistir objetos vacíos en la DB.
+ */
+export const purgarFilasVaciasPaso4 = ({ juntaDirectiva, accionistas, beneficiarios }) => ({
+  juntaDirectiva: juntaDirectiva.filter(
+    (fila) => !ESQUEMAS_TABLA.juntaDirectiva.camposObligatorios.every((c) => esCampoVacio(fila[c])),
+  ),
+  accionistas: accionistas.filter(
+    (fila) => !ESQUEMAS_TABLA.accionistas.camposObligatorios.every((c) => esCampoVacio(fila[c])),
+  ),
+  beneficiarios: beneficiarios.filter(
+    (fila) => !ESQUEMAS_TABLA.beneficiarios.camposObligatorios.every((c) => esCampoVacio(fila[c])),
+  ),
+});
+
 // ─── Esquemas y validación del paso 6 ────────────────────────────────────────
 
 const ESQUEMAS_PASO6 = {
