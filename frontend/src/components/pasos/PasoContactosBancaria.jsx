@@ -115,7 +115,7 @@ export default function PasoContactosBancaria({
                         type="button"
                         onClick={() => onEliminarReferencia(idx)}
                         style={ESTILO_BTN_ELIMINAR}
-                        title="Eliminar referencia"
+                        title="Aqui puedes eliminar referencia comercial"
                       >
                         ×
                       </button>
@@ -127,7 +127,7 @@ export default function PasoContactosBancaria({
           </tbody>
         </table>
       </div>
-      <button type="button" className="btn btn-sm btn-outline" onClick={onAddReferencia}>
+      <button type="button" className="btn btn-sm btn-outline" onClick={onAddReferencia} required>
         + Agregar referencia
       </button>
 
@@ -176,7 +176,7 @@ export default function PasoContactosBancaria({
                         type="button"
                         onClick={() => onEliminarReferenciaBancaria(idx)}
                         style={ESTILO_BTN_ELIMINAR}
-                        title="Eliminar referencia bancaria"
+                        title="Aqui puedes eliminar referencia bancaria"
                       >
                         ×
                       </button>

@@ -17,8 +17,8 @@ import { useRecuperacionSesion } from './useRecuperacionSesion';
 import { useAlertasInconsistencia } from './useAlertasInconsistencia';
 import {
   validarTablasPaso4, CLAVES_ERROR_PASO4,
-  validarTablasPaso6, CLAVES_ERROR_PASO6,
-  validarTablasPaso7, CLAVES_ERROR_PASO7,
+  validarTablasPaso6, CLAVES_ERROR_PASO6, purgarFilasVaciasPaso6,
+  validarTablasPaso7, CLAVES_ERROR_PASO7, purgarFilasVaciasPaso7,
 } from '../utils/validacionTablas';
 import { sanitizarPayload } from '../utils/normalizadores';
 import { obtenerCamposDeDocumento } from '../data/mapeoDocumentos';
@@ -350,6 +350,15 @@ export function useFormulario() {
     }
     aplicarErrores(newErrors);
     if (Object.keys(newErrors).length === 0) {
+      if (step === 6) {
+        const purged = purgarFilasVaciasPaso6({ referenciasComerciales, referenciasBancarias });
+        setReferenciasComerciales(purged.referenciasComerciales);
+        setReferenciasBancarias(purged.referenciasBancarias);
+      }
+      else if (step === 7) {
+        const purged = purgarFilasVaciasPaso7({ infoBancariaPagos });
+        setInfoBancariaPagos(purged.infoBancariaPagos);
+      }
       setStep(prev => Math.min(prev + 1, TOTAL_STEPS));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

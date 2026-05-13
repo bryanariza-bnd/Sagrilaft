@@ -339,6 +339,19 @@ export const CLAVES_ERROR_PASO6 = Object.values(ESQUEMAS_PASO6).flatMap((e) => [
   e.errorKeyFilas,
 ]);
 
+/**
+ * Elimina filas donde todos los campos obligatorios están vacíos.
+ * Se llama al avanzar del paso 6 para evitar persistir objetos vacíos {} en la DB.
+ */
+export const purgarFilasVaciasPaso6 = ({ referenciasComerciales, referenciasBancarias }) => ({
+  referenciasComerciales: referenciasComerciales.filter(
+    (fila) => !ESQUEMAS_PASO6.referenciasComerciales.camposObligatorios.every((c) => esCampoVacio(fila[c])),
+  ),
+  referenciasBancarias: referenciasBancarias.filter(
+    (fila) => !ESQUEMAS_PASO6.referenciasBancarias.camposObligatorios.every((c) => esCampoVacio(fila[c])),
+  ),
+});
+
 // ─── Esquemas y validación del paso 7 ────────────────────────────────────────
 
 const ESQUEMAS_PASO7 = {
@@ -371,3 +384,9 @@ export const CLAVES_ERROR_PASO7 = Object.values(ESQUEMAS_PASO7).flatMap((e) => [
   e.errorKey,
   e.errorKeyFilas,
 ]);
+
+export const purgarFilasVaciasPaso7 = ({infoBancariaPagos}) => ({
+  infoBancariaPagos: infoBancariaPagos.filter(
+    (fila) => !ESQUEMAS_PASO7.infoBancariaPagos.camposObligatorios.every((c) => esCampoVacio(fila[c])),
+  ),
+});
