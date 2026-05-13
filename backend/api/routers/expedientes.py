@@ -13,11 +13,13 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from api.dependencies import obtener_servicio_firma
-from api.schemas import ExpedienteDetalle, ExpedienteResumen
+from api.dependencies import obtener_servicio_acceso, obtener_servicio_email, obtener_servicio_firma
+from api.schemas import ExpedienteDetalle, ExpedienteResumen, ResumenDevolucion, SolicitudDevolucion
 from infrastructure.persistencia.database import get_db
+from services.acceso_manual.acceso_manual_service import AccesoManualService
 from services.expedientes.expediente_service import ExpedienteService
 from services.firma.firma_service import FirmaService
+from services.notificaciones.email_service import EmailService
 
 enrutador = APIRouter(prefix="/api/expedientes", tags=["expedientes"])
 
@@ -114,6 +116,32 @@ def rechazar_expediente(
     servicio: ExpedienteService = Depends(_obtener_servicio),
 ) -> dict:
     return servicio.rechazar_expediente(formulario_id)
+
+
+@enrutador.post(
+    "/{formulario_id}/devolver",
+    response_model=ResumenDevolucion,
+    summary="Devolver formulario para corrección",
+    description=(
+        "Cambia el estado del formulario a 'en_correccion', registra las especificaciones "
+        "de corrección y notifica al destinatario registrado por correo electrónico. "
+        "Solo disponible en estados 'enviado' o 'validado'."
+    ),
+    responses={400: {"description": "El formulario no puede devolverse en su estado actual"}},
+)
+def devolver_expediente(
+    formulario_id: str,
+    solicitud: SolicitudDevolucion,
+    servicio: ExpedienteService = Depends(_obtener_servicio),
+    acceso_service: AccesoManualService = Depends(obtener_servicio_acceso),
+    email_service: EmailService = Depends(obtener_servicio_email),
+) -> ResumenDevolucion:
+    return servicio.devolver_para_correccion(
+        formulario_id=formulario_id,
+        especificaciones=solicitud.especificaciones,
+        acceso_service=acceso_service,
+        email_service=email_service,
+    )
 
 
 # ─── Firma electrónica ────────────────────────────────────────────────────────

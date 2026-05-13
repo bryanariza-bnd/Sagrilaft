@@ -9,7 +9,7 @@ Responsabilidades:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -21,14 +21,21 @@ from infrastructure.persistencia.models import (
     Formulario,
 )
 
+if TYPE_CHECKING:
+    from services.acceso_manual.acceso_manual_service import AccesoManualService
+    from services.notificaciones.email_service import EmailService
+
 
 _ESTADOS_EXPEDIENTE = [
     EstadoFormulario.ENVIADO,
+    EstadoFormulario.EN_CORRECCION,
     EstadoFormulario.VALIDADO,
     EstadoFormulario.RECHAZADO,
     EstadoFormulario.PENDIENTE_FIRMA,
     EstadoFormulario.FIRMADO,
 ]
+
+_ESTADOS_DEVOLVIBLES = {EstadoFormulario.ENVIADO, EstadoFormulario.VALIDADO}
 
 
 class ExpedienteService:
@@ -220,6 +227,54 @@ class ExpedienteService:
         formulario.estado = EstadoFormulario.RECHAZADO
         self._sesion.commit()
         return {"estado": formulario.estado}
+
+    def devolver_para_correccion(
+        self,
+        formulario_id: str,
+        especificaciones: str,
+        acceso_service: "AccesoManualService",
+        email_service: Optional["EmailService"] = None,
+    ) -> Dict[str, Any]:
+        """
+        Devuelve el formulario al remitente para que corrija la información indicada.
+
+        Transiciones permitidas: ENVIADO → EN_CORRECCION, VALIDADO → EN_CORRECCION.
+        Reactiva el acceso manual vinculado y notifica al destinatario por correo.
+        """
+        formulario = self._buscar_formulario_expediente(formulario_id)
+
+        estado_actual = formulario.estado
+        if isinstance(estado_actual, str):
+            estado_actual = EstadoFormulario(estado_actual)
+
+        if estado_actual not in _ESTADOS_DEVOLVIBLES:
+            raise FormularioNoEditableError(
+                f"Solo se puede devolver un formulario en estado 'enviado' o 'validado' "
+                f"(actual: '{formulario.estado}')."
+            )
+
+        formulario.estado            = EstadoFormulario.EN_CORRECCION
+        formulario.campos_a_corregir = especificaciones
+
+        datos_acceso = acceso_service.reactivar_acceso_para_correccion(formulario_id)
+        self._sesion.commit()
+
+        correo_notificado = datos_acceso["correo_destinatario"] if datos_acceso else None
+        enlace_acceso     = datos_acceso["enlace_diligenciamiento"] if datos_acceso else None
+
+        correo_enviado = False
+        if email_service and correo_notificado:
+            correo_enviado = email_service.enviar_notificacion_devolucion(
+                correo_destinatario=correo_notificado,
+                especificaciones_correccion=especificaciones,
+                enlace_diligenciamiento=enlace_acceso,
+            )
+
+        return {
+            "estado":            formulario.estado,
+            "correo_notificado": correo_notificado,
+            "correo_enviado":    correo_enviado,
+        }
 
     # ─── Descarga ─────────────────────────────────────────────────────────────
 

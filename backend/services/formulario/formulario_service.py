@@ -44,7 +44,7 @@ from services.formulario.analisis_service import (
     ResultadoGuardadoDocumento,
     obtener_config_analisis_por_defecto,
 )
-from services.utils.estado_formulario import es_estado_borrador
+from services.utils.estado_formulario import es_estado_borrador, es_estado_editable
 
 
 class FormularioService:
@@ -214,7 +214,7 @@ class FormularioService:
     @staticmethod
     def _verificar_estado_borrador_o_error(formulario: Formulario, mensaje_error: str) -> None:
         """Variante de dominio (sin HTTPException). Usada por el flujo /enviar."""
-        if not es_estado_borrador(formulario.estado):
+        if not es_estado_editable(formulario.estado):
             raise FormularioNoEditableError(mensaje_error)
 
     def _registrar_pdf_oficial(self, formulario_id: str, pdf: ArchivoPdfGenerado) -> None:

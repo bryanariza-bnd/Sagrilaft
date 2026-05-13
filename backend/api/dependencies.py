@@ -13,6 +13,7 @@ from infrastructure.persistencia.database import get_db
 from infrastructure.dependencies import obtener_config
 from services.acceso_manual.acceso_manual_service import AccesoManualService
 from services.firma.firma_service import FirmaService
+from services.notificaciones.email_service import EmailService
 
 
 def obtener_servicio_firma(
@@ -33,3 +34,9 @@ def obtener_servicio_acceso(
     config: AppConfig = Depends(obtener_config),
 ) -> AccesoManualService:
     return AccesoManualService(sesion, config.frontend_urls[0])
+
+
+def obtener_servicio_email(
+    config: AppConfig = Depends(obtener_config),
+) -> EmailService:
+    return EmailService(config.smtp)

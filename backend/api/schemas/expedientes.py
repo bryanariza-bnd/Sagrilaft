@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, Field, field_serializer
 
 from infrastructure.persistencia.models import EstadoFormulario, TipoContraparte, TipoPersona
 
@@ -58,3 +58,24 @@ class ExpedienteDetalle(BaseModel):
     @field_serializer("updated_at", when_used="json")
     def _serializar_fecha(self, valor: datetime) -> str:
         return a_iso_utc(valor) or ""
+
+
+class SolicitudDevolucion(BaseModel):
+    """Datos requeridos para devolver un formulario al remitente para corrección."""
+
+    especificaciones: str = Field(
+        min_length=20,
+        max_length=2000,
+        description=(
+            "Descripción exacta de qué información debe corregirse o completarse. "
+            "Este texto se incluye en el correo enviado al destinatario."
+        ),
+    )
+
+
+class ResumenDevolucion(BaseModel):
+    """Resultado de una operación de devolución de formulario."""
+
+    estado:            str
+    correo_notificado: Optional[str] = None
+    correo_enviado:    bool = False
