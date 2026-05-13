@@ -23,3 +23,16 @@ def es_estado_borrador(estado: Any) -> bool:
     """True si el estado representa 'borrador' (soporta enum o string)."""
     return normalizar_estado_formulario(estado) == EstadoFormulario.BORRADOR.value
 
+
+def es_estado_editable(estado: Any) -> bool:
+    """True si la contraparte puede editar y reenviar el formulario.
+
+    El formulario es editable en borrador (primera vez) o en corrección
+    (devuelto por el portal interno para subsanar información).
+    """
+    _ESTADOS_EDITABLES = {
+        EstadoFormulario.BORRADOR.value,
+        EstadoFormulario.EN_CORRECCION.value,
+    }
+    return normalizar_estado_formulario(estado) in _ESTADOS_EDITABLES
+
