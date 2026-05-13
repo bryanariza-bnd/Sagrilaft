@@ -32,7 +32,7 @@ from domain.excepciones import (
 from infrastructure.persistencia.models import AccesoManual, Formulario
 from api.schemas import SolicitudAccesoManual
 from services.formulario.serializacion import construir_snapshot_formulario
-from services.utils.estado_formulario import es_estado_borrador
+from services.utils.estado_formulario import es_estado_borrador, es_estado_editable
 from core.fechas import ahora_utc, normalizar_datetime_utc
 
 logger = logging.getLogger(__name__)
@@ -107,11 +107,11 @@ def _calcular_estado_acceso(acceso: "AccesoManual") -> Literal["activo", "consum
     if acceso.consumed_at is not None:
         return "consumido"
 
-    # Fuente de verdad funcional: el formulario ya no está en borrador.
+    # Fuente de verdad funcional: el formulario ya no está editable.
     # Nota: consumed_at puede estar vacío en datos históricos; el estado debe
     # seguir reflejando que el acceso ya fue usado.
     formulario = getattr(acceso, "formulario", None)
-    if formulario is not None and not es_estado_borrador(formulario.estado):
+    if formulario is not None and not es_estado_editable(formulario.estado):
         return "consumido"
 
     if _esta_expirado(acceso):
@@ -289,7 +289,7 @@ class AccesoManualService:
     def _validar_acceso_para_token(acceso: AccesoManual, token: str) -> None:
         _verificar_vigencia(acceso)
         _verificar_no_consumido(acceso)
-        if not es_estado_borrador(acceso.formulario.estado):
+        if not es_estado_editable(acceso.formulario.estado):
             raise TokenConsumidoError()
 
     def resolver_token(self, token: str) -> Dict[str, Any]:
@@ -331,7 +331,7 @@ class AccesoManualService:
 
         _verificar_vigencia(acceso)
 
-        if not es_estado_borrador(formulario.estado):
+        if not es_estado_editable(formulario.estado):
             raise FormularioYaEnviadoError()
 
         return construir_snapshot_formulario(formulario)
@@ -342,7 +342,7 @@ class AccesoManualService:
     def _verificar_por_token(acceso: AccesoManual, token: str) -> None:
         if acceso.consumed_at is not None:
             raise FormularioYaEnviadoError()
-        if not es_estado_borrador(acceso.formulario.estado):
+        if not es_estado_editable(acceso.formulario.estado):
             raise FormularioYaEnviadoError()
         if not secrets.compare_digest(acceso.token_diligenciamiento, token):
             raise CredencialesAccesoInvalidasError()
@@ -373,6 +373,9 @@ class AccesoManualService:
             return  # formulario regular, sin PIN requerido
 
         _verificar_vigencia(acceso)
+
+        if not es_estado_editable(acceso.formulario.estado):
+            raise FormularioYaEnviadoError()
 
         # Verificar por token de diligenciamiento (flujo enlace por correo)
         if token:
@@ -409,6 +412,38 @@ class AccesoManualService:
             raise CredencialesAccesoInvalidasError()
 
         self._marcar_consumido(acceso)
+
+    # ─── Reactivación para corrección ────────────────────────────────────────
+
+    def reactivar_acceso_para_correccion(
+        self, formulario_id: str
+    ) -> Optional[dict]:
+        """
+        Regenera el token y restablece el vencimiento del acceso para una nueva
+        ronda de corrección.
+
+        El caller (ExpedienteService) agrupa este cambio en su propia transacción;
+        este método no llama commit().
+
+        Returns:
+            {"correo_destinatario": str, "enlace_diligenciamiento": str}
+            o None si el formulario no tiene AccesoManual vinculado.
+        """
+        from infrastructure.persistencia.models import generate_expires_at
+
+        acceso = self._obtener_acceso_por_formulario_id(formulario_id)
+        if not acceso:
+            return None
+
+        acceso.token_diligenciamiento = secrets.token_urlsafe(32)
+        acceso.consumed_at            = None
+        acceso.expires_at             = generate_expires_at()
+        return {
+            "correo_destinatario":    acceso.correo_destinatario,
+            "enlace_diligenciamiento": self._construir_enlace_diligenciamiento(
+                acceso.token_diligenciamiento
+            ),
+        }
 
     def marcar_consumido_al_enviar(self, formulario_id: str) -> None:
         """
