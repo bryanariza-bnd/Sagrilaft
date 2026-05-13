@@ -182,6 +182,14 @@ export const api = {
     return requestJson(`/expedientes/${formularioId}/rechazar`, { method: 'POST' });
   },
 
+  async devolverExpediente(formularioId, solicitud) {
+    return requestJson(`/expedientes/${formularioId}/devolver`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(solicitud),
+    });
+  },
+
   async enviarAFirma(formularioId) {
     return requestJson(`/expedientes/${formularioId}/enviar-a-firma`, {
       method: 'POST',

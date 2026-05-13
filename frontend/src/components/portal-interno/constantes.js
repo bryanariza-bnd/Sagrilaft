@@ -60,6 +60,7 @@ export const ESTADOS_FORMULARIO = [
   // Los valores deben coincidir con `EstadoFormulario` del backend (minúsculas):
   // backend/infrastructure/persistencia/models.py
   { valor: 'enviado',         etiqueta: 'Enviado',          bg: '#eff6ff', color: '#1d4ed8', borde: '#bfdbfe' },
+  { valor: 'en_correccion',   etiqueta: 'En corrección',    bg: '#fff7ed', color: '#c2410c', borde: '#fed7aa' },
   { valor: 'validado',        etiqueta: 'Validado',         bg: '#f0fdf4', color: '#15803d', borde: '#bbf7d0' },
   { valor: 'rechazado',       etiqueta: 'Rechazado',        bg: '#fef2f2', color: '#dc2626', borde: '#fca5a5' },
   { valor: 'pendiente_firma', etiqueta: 'Pendiente firma',  bg: '#fefce8', color: '#854d0e', borde: '#fde047' },

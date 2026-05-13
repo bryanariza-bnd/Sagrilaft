@@ -14,6 +14,7 @@ import { api } from '../../services/api';
 import { useExpedienteDetalle } from './hooks/useExpedienteDetalle';
 import { estilosEstadoCargaBase } from './ui/listaStyles';
 import BadgeEstadoFormulario from './BadgeEstadoFormulario';
+import ModalDevolucion from './ModalDevolucion';
 import {
   ETIQUETA_TIPO_CONTRAPARTE,
   formatearFechaCorta,
@@ -22,6 +23,7 @@ import {
 } from './constantes';
 
 const ESTADO_ENVIADO         = 'enviado';
+const ESTADO_EN_CORRECCION   = 'en_correccion';
 const ESTADO_VALIDADO        = 'validado';
 const ESTADO_PENDIENTE_FIRMA = 'pendiente_firma';
 const ESTADO_FIRMADO         = 'firmado';
@@ -328,12 +330,13 @@ function FilaDocumento({ documento, formularioId }) {
 }
 
 function BannerFirma({ estado, formularioId, onFirmaEnviada }) {
-  const [enviando, setEnviando]       = useState(false); // enviar a ZohoSign (VALIDADO)
-  const [aprobando, setAprobando]     = useState(false); // aprobar expediente (ENVIADO)
-  const [rechazando, setRechazando]   = useState(false); // rechazar expediente (ENVIADO)
-  const [cancelando, setCancelando]   = useState(false);
-  const [verificando, setVerificando] = useState(false);
-  const [errorFirma, setErrorFirma]   = useState(null);
+  const [enviando, setEnviando]                         = useState(false); // enviar a ZohoSign (VALIDADO)
+  const [aprobando, setAprobando]                       = useState(false); // aprobar expediente (ENVIADO)
+  const [rechazando, setRechazando]                     = useState(false); // rechazar expediente (ENVIADO)
+  const [cancelando, setCancelando]                     = useState(false);
+  const [verificando, setVerificando]                   = useState(false);
+  const [errorFirma, setErrorFirma]                     = useState(null);
+  const [mostrarModalDevolucion, setMostrarModalDevolucion] = useState(false);
 
   async function handleEnviarAFirma() {
     setEnviando(true);
@@ -403,30 +406,60 @@ function BannerFirma({ estado, formularioId, onFirmaEnviada }) {
   if (estado === ESTADO_ENVIADO) {
     const ocupado = aprobando || rechazando;
     return (
-      <div style={{ ...s.bannerFirma, background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)' }}>
-        <div style={s.bannerFirmaTextos}>
-          <p style={s.bannerFirmaTitulo}>Formulario recibido — pendiente de revisión</p>
-          <p style={s.bannerFirmaSubtitulo}>
-            {errorFirma || 'Revise los documentos adjuntos y apruebe o rechace el formulario.'}
-          </p>
+      <>
+        <div style={{ ...s.bannerFirma, background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)' }}>
+          <div style={s.bannerFirmaTextos}>
+            <p style={s.bannerFirmaTitulo}>Formulario recibido — pendiente de revisión</p>
+            <p style={s.bannerFirmaSubtitulo}>
+              {errorFirma || 'Revise los documentos adjuntos y apruebe, rechace o devuelva el formulario.'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+            <button
+              style={{ ...s.btnFirma, color: '#1d4ed8', ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
+              onClick={handleAprobar}
+              disabled={ocupado}
+              type="button"
+            >
+              {aprobando ? 'Aprobando…' : 'Aprobar'}
+            </button>
+            <button
+              style={{ ...s.btnFirma, color: '#991b1b', opacity: 0.85, ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
+              onClick={handleRechazar}
+              disabled={ocupado}
+              type="button"
+            >
+              {rechazando ? 'Rechazando…' : 'Rechazar'}
+            </button>
+            <button
+              style={{ ...s.btnFirma, color: '#c2410c', opacity: 0.9, ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
+              onClick={() => setMostrarModalDevolucion(true)}
+              disabled={ocupado}
+              type="button"
+            >
+              Devolver
+            </button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-          <button
-            style={{ ...s.btnFirma, color: '#1d4ed8', ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
-            onClick={handleAprobar}
-            disabled={ocupado}
-            type="button"
-          >
-            {aprobando ? 'Aprobando…' : 'Aprobar'}
-          </button>
-          <button
-            style={{ ...s.btnFirma, color: '#991b1b', opacity: 0.85, ...(ocupado ? s.btnFirmaDeshabilitado : {}) }}
-            onClick={handleRechazar}
-            disabled={ocupado}
-            type="button"
-          >
-            {rechazando ? 'Rechazando…' : 'Rechazar'}
-          </button>
+        <ModalDevolucion
+          visible={mostrarModalDevolucion}
+          formularioId={formularioId}
+          onDevuelto={() => { setMostrarModalDevolucion(false); onFirmaEnviada(); }}
+          onCancelar={() => setMostrarModalDevolucion(false)}
+        />
+      </>
+    );
+  }
+
+  if (estado === ESTADO_EN_CORRECCION) {
+    return (
+      <div style={{ ...s.bannerFirma, background: 'linear-gradient(135deg, #7c2d12 0%, #c2410c 100%)' }}>
+        <div style={s.bannerFirmaTextos}>
+          <p style={s.bannerFirmaTitulo}>Formulario devuelto — en corrección</p>
+          <p style={s.bannerFirmaSubtitulo}>
+            Se notificó al destinatario. El formulario estará disponible nuevamente
+            cuando el remitente reenvíe la versión corregida.
+          </p>
         </div>
       </div>
     );
