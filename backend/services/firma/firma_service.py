@@ -13,7 +13,7 @@ Flujo de estados:
 
 import hmac
 import logging
-import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -32,6 +32,7 @@ from infrastructure.persistencia.models import (
     EstadoFormulario,
     Formulario,
 )
+from services.formulario.almacenamiento_contraparte import resolver_ruta_contraparte
 from services.zoho_sign.zoho_sign_service import ZohoSignService
 
 logger = logging.getLogger(__name__)
@@ -86,9 +87,39 @@ class FirmaService:
         return doc
 
     def _ruta_documento_firmado(self, formulario: Formulario) -> Path:
-        tipo  = formulario.tipo_contraparte or "sin_tipo"
-        razon = re.sub(r"[^\w\s\-]", "_", formulario.razon_social or "sin_razon_social").strip()
-        return self._upload_dir / tipo / razon / formulario.id / _NOMBRE_PDF_FIRMADO
+        directorio_contraparte = resolver_ruta_contraparte(
+            tipo_contraparte=formulario.tipo_contraparte or "",
+            razon_social=formulario.razon_social or "",
+            upload_dir=self._upload_dir,
+        )
+        return directorio_contraparte / _NOMBRE_PDF_FIRMADO
+
+    def _archivar_version_anterior(self, ruta_version_actual: Path) -> None:
+        """
+        Renombra el documento firmado existente añadiendo un sello de fecha/hora
+        antes de guardar una nueva versión corregida.
+
+        Convención:  formulario_firmado_corregido_YYYYMMDD_HHMMSS.pdf
+        Si el archivo no existe en disco (ruta obsoleta de una migración anterior)
+        el archivado se omite sin error.
+        """
+        if not ruta_version_actual.exists():
+            logger.warning(
+                "Archivo previo no encontrado en disco, se omite el archivado: %s",
+                ruta_version_actual,
+            )
+            return
+
+        sello_temporal = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        nombre_archivado = f"formulario_firmado_corregido_{sello_temporal}.pdf"
+        ruta_archivada = ruta_version_actual.parent / nombre_archivado
+        ruta_version_actual.rename(ruta_archivada)
+
+        logger.info(
+            "Versión anterior archivada: %s → %s",
+            ruta_version_actual.name,
+            ruta_archivada.name,
+        )
 
     # ─── Enviar a firma ───────────────────────────────────────────────────────
 
@@ -211,11 +242,15 @@ class FirmaService:
             logger.info("Webhook duplicado ignorado: formulario %s ya está FIRMADO", formulario.id)
             return
 
-        destino_esperado = self._ruta_documento_firmado(formulario)
+        es_refirma_tras_correccion = formulario.ruta_documento_firmado is not None
+        if es_refirma_tras_correccion:
+            self._archivar_version_anterior(Path(formulario.ruta_documento_firmado))
+
+        ruta_destino = self._ruta_documento_firmado(formulario)
 
         # descargar_documento_firmado puede ajustar la extensión a .zip si ZohoSign
         # devuelve múltiples documentos comprimidos. Usamos la ruta real retornada.
-        ruta_guardada = self._zoho.descargar_documento_firmado(request_id, destino_esperado)
+        ruta_guardada = self._zoho.descargar_documento_firmado(request_id, ruta_destino)
 
         formulario.ruta_documento_firmado = str(ruta_guardada)
         formulario.estado                 = EstadoFormulario.FIRMADO
