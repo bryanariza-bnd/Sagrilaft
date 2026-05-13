@@ -58,6 +58,16 @@ class AWSConfig:
     temperature: float = 0.0  # Determinístico para extracción de datos
 
 
+@dataclass(frozen=True)
+class SmtpConfig:
+    """Configuración SMTP para envío de correos transaccionales."""
+    host:      str = field(default_factory=lambda: os.getenv("SMTP_HOST", ""))
+    puerto:    int = field(default_factory=lambda: int(os.getenv("SMTP_PORT", "587")))
+    usuario:   str = field(default_factory=lambda: os.getenv("SMTP_USER", ""))
+    contrasena: str = field(default_factory=lambda: os.getenv("SMTP_PASSWORD", ""))
+    remitente:  str = field(default_factory=lambda: os.getenv("SMTP_FROM", ""))
+
+
 def _require_db_url() -> str:
     url = os.getenv("DATABASE_URL")
     if not url:
@@ -84,6 +94,7 @@ class AppConfig:
     )
     aws: AWSConfig = field(default_factory=AWSConfig)
     zoho_sign: ZohoSignConfig = field(default_factory=ZohoSignConfig)
+    smtp: SmtpConfig = field(default_factory=SmtpConfig)
 
 
 def load_config() -> AppConfig:
