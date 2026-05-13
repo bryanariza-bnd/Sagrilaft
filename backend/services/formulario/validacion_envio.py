@@ -87,7 +87,7 @@ class ValidadorEnvioFormulario:
         ("correo_representante",    "Correo del Representante"),
         ("telefono_representante",  "Teléfono del Representante"),
         ("direccion_funciones",     "Dirección donde ejerce funciones"),
-            ("pais_funciones",          "País donde ejerce funciones"),
+        ("pais_funciones",          "País donde ejerce funciones"),
         ("departamento_funciones",  "Departamento donde ejerce funciones"),
         ("ciudad_funciones",        "Ciudad donde ejerce funciones"),
         ("actividad_economica",     "Actividad Económica Principal"),

@@ -13,6 +13,7 @@ import enum
 class EstadoFormulario(str, enum.Enum):
     BORRADOR        = "borrador"
     ENVIADO         = "enviado"
+    EN_CORRECCION   = "en_correccion"
     VALIDADO        = "validado"
     RECHAZADO       = "rechazado"
     PENDIENTE_FIRMA = "pendiente_firma"
@@ -181,6 +182,8 @@ class Formulario(Base):
     correo_representante = Column(String, nullable=True)
     telefono_representante = Column(String, nullable=True)
     direccion_funciones = Column(String, nullable=True)
+    pais_funciones = Column(String, nullable=True)
+    departamento_funciones = Column(String, nullable=True)
     ciudad_funciones = Column(String, nullable=True)
     direccion_residencia = Column(String, nullable=True)
     ciudad_residencia = Column(String, nullable=True)
@@ -237,6 +240,9 @@ class Formulario(Base):
     mes_firma    = Column(Integer, nullable=True)   # 1–12
     year_firma   = Column(Integer, nullable=True)   # ej: 2025
     ciudad_firma = Column(String,  nullable=True)
+
+    # --- Devolución para corrección ---
+    campos_a_corregir = Column(Text, nullable=True)
 
     # --- ZohoSign ---
     zoho_request_id        = Column(String, nullable=True)

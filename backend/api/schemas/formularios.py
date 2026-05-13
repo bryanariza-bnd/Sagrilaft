@@ -137,6 +137,8 @@ class FormularioBase(BaseModel):
     correo_representante: Optional[str] = None
     telefono_representante: Optional[str] = None
     direccion_funciones: Optional[str] = None
+    pais_funciones: Optional[str] = None
+    departamento_funciones: Optional[str] = None
     ciudad_funciones: Optional[str] = None
     direccion_residencia: Optional[str] = None
     ciudad_residencia: Optional[str] = None

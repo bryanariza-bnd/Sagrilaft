@@ -318,6 +318,8 @@ _PASOS_FORMULARIO: List[_PasoFormulario] = [
             ("Correo",                    "correo_representante"),
             ("Teléfono",                  "telefono_representante"),
             ("Dirección (funciones)",     "direccion_funciones"),
+            ("País (funciones)",          "pais_funciones"),
+            ("Departamento (funciones)",  "departamento_funciones"),
             ("Ciudad (funciones)",        "ciudad_funciones"),
             ("Dirección de residencia",   "direccion_residencia"),
             ("Ciudad de residencia",      "ciudad_residencia"),
