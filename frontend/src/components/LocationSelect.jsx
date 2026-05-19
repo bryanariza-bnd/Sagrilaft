@@ -13,8 +13,9 @@
 
 import Select from 'react-select';
 import { HelpIcon } from './HelpPanel';
-import helpTexts from '../data/helpTexts';
+import textosAyudaCampos from '../data/helpTexts';
 import { buildSelectStyles } from '../utils/selectStyles';
+import { useCorreccion } from '../context/CorreccionContext';
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
@@ -30,14 +31,36 @@ export default function LocationSelect({
   placeholder = 'Seleccione...',
   onOpenHelp,
 }) {
-  const hasHelp = !!helpTexts[name];
+  const { esCampoConCorreccion } = useCorreccion();
+  const marcado = esCampoConCorreccion(name);
+  const tieneValor = !!value;
+  const correccionPendiente  = marcado && !tieneValor && !error;
+  const correccionCompletada = marcado && tieneValor;
+
+  const tieneAyuda = !!textosAyudaCampos[name];
+
+  const groupClasses = [
+    'form-group',
+    correccionPendiente  ? 'correccion-pendiente'  : '',
+    correccionCompletada ? 'correccion-completada' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <div className="form-group">
+    <div className={groupClasses}>
       <label className="form-label">
         {label}
         {required && <span className="required-mark">*</span>}
-        {hasHelp && <HelpIcon fieldKey={name} onOpenHelp={onOpenHelp} />}
+        {correccionPendiente && (
+          <span className="correccion-mark" title="Este campo requiere corrección" aria-label="Requiere corrección">
+            ✎
+          </span>
+        )}
+        {correccionCompletada && (
+          <span className="correccion-ok-mark" title="Corrección completada" aria-label="Corregido">
+            ✓
+          </span>
+        )}
+        {tieneAyuda && <HelpIcon fieldKey={name} onOpenHelp={onOpenHelp} />}
       </label>
 
       <Select
@@ -50,9 +73,15 @@ export default function LocationSelect({
         isClearable
         placeholder={placeholder}
         noOptionsMessage={() => 'Sin opciones'}
-        styles={buildSelectStyles(!!error, !!value)}
+        styles={buildSelectStyles(!!error, tieneValor, correccionPendiente)}
       />
 
+      {correccionPendiente && !error && (
+        <div className="correccion-aviso">Este campo requiere corrección</div>
+      )}
+      {correccionCompletada && (
+        <div className="correccion-aviso correccion-aviso--ok">Corrección completada</div>
+      )}
       {error && <div className="field-error">{error}</div>}
     </div>
   );

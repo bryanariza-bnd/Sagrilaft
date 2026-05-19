@@ -29,10 +29,17 @@ import {
 // Son metadatos del formulario o tablas gestionadas como estado separado.
 const _CAMPOS_EXCLUIR_DE_FORMDATA = new Set([
   'id', 'codigo_peticion', 'estado', 'pagina_actual', 'created_at', 'updated_at',
+  'campos_a_corregir',
   'junta_directiva', 'accionistas', 'beneficiario_final',
   'referencias_comerciales', 'referencias_bancarias', 'informacion_bancaria_pagos',
   'clasificaciones', 'documentos', 'validaciones',
 ]);
+
+const ERRORES_RECUPERACION = {
+  CREDENCIALES_INVALIDAS: 'Código de petición o PIN incorrecto. Verifique los datos',
+  FORMULARIO_YA_ENVIADO:  'Este formulario ya fue enviado y no puede recuperarse.',
+  ACCESO_EXPIRADO:        'El acceso ha expirado. Solicite un nuevo enlace al área responsable.',
+};
 
 function _normalizarDocumentos(documentosArray) {
   if (!Array.isArray(documentosArray)) return {};
@@ -48,22 +55,26 @@ function _adaptarRespuestaServidor(formulario) {
   );
   return {
     formData,
-    step:               formulario.pagina_actual ?? 1,
-    formularioId:       formulario.id,
-    codigoPeticion:     formulario.codigo_peticion,
-    juntaDirectiva:     formulario.junta_directiva     ?? [],
-    accionistas:        formulario.accionistas          ?? [],
-    beneficiarios:      formulario.beneficiario_final   ?? [],
+    step:                formulario.pagina_actual ?? 1,
+    formularioId:        formulario.id,
+    codigoPeticion:      formulario.codigo_peticion,
+    estadoFormulario:    formulario.estado ?? null,
+    camposACorregir:     formulario.campos_a_corregir ?? null,
+    juntaDirectiva:      formulario.junta_directiva     ?? [],
+    accionistas:         formulario.accionistas          ?? [],
+    beneficiarios:       formulario.beneficiario_final   ?? [],
     referenciasComerciales:  formulario.referencias_comerciales    ?? [],
     referenciasBancarias:    formulario.referencias_bancarias       ?? [],
     infoBancariaPagos:       formulario.informacion_bancaria_pagos  ?? [],
-    documentos:         _normalizarDocumentos(formulario.documentos),
+    documentos:          _normalizarDocumentos(formulario.documentos),
   };
 }
 
 export function useRecuperacionSesion(setters) {
   const {
     setFormData, setStep, setFormularioId, setCodigoPeticion,
+    setEstadoFormulario, setCamposACorregir, setFormDataOriginal,
+    setTablasOriginales,
     setJuntaDirectiva, setAccionistas, setBeneficiarios,
     setReferenciasComerciales, setReferenciasBancarias,
     setInfoBancariaPagos, setDocumentos,
@@ -81,24 +92,40 @@ export function useRecuperacionSesion(setters) {
   // ── Restauración de estado ─────────────────────────────────────────────────
   // Declarado antes de los effects para que las closures capturen la referencia
   // estable via ref y siempre usen la versión más reciente del callback.
-  const _restaurarDesdeSnapshot = useCallback((snap) => {
-    setFormData(snap.formData ?? {});
-    setStep(snap.step ?? 1);
-    setFormularioId(snap.formularioId ?? null);
-    setCodigoPeticion(snap.codigoPeticion ?? null);
+  const _restaurarDesdeSnapshot = useCallback((snapshot_recuperar_sesion) => {
+    setFormData(snapshot_recuperar_sesion.formData ?? {});
+    setStep(snapshot_recuperar_sesion.step ?? 1);
+    setFormularioId(snapshot_recuperar_sesion.formularioId ?? null);
+    setCodigoPeticion(snapshot_recuperar_sesion.codigoPeticion ?? null);
+    setEstadoFormulario(snapshot_recuperar_sesion.estadoFormulario ?? null);
+    setCamposACorregir(snapshot_recuperar_sesion.camposACorregir ?? null);
+    if (snapshot_recuperar_sesion.estadoFormulario === 'en_correccion') {
+      setFormDataOriginal(snapshot_recuperar_sesion.formData ?? {});
+      // Guarda snapshot de tablas para detectar modificaciones durante la corrección
+      setTablasOriginales({
+        juntaDirectiva:         snapshot_recuperar_sesion.juntaDirectiva          ?? [],
+        accionistas:            snapshot_recuperar_sesion.accionistas              ?? [],
+        beneficiarios:          snapshot_recuperar_sesion.beneficiarios            ?? [],
+        referenciasComerciales: snapshot_recuperar_sesion.referenciasComerciales  ?? [],
+        referenciasBancarias:   snapshot_recuperar_sesion.referenciasBancarias    ?? [],
+        infoBancariaPagos:      snapshot_recuperar_sesion.infoBancariaPagos        ?? [],
+      });
+    }
     setJuntaDirectiva(
-      snap.juntaDirectiva?.length > 0
-        ? snap.juntaDirectiva
+      snapshot_recuperar_sesion.juntaDirectiva?.length > 0
+        ? snapshot_recuperar_sesion.juntaDirectiva
         : [{ cargo: 'Presidente' }, { cargo: 'Gerente General / Rep. Legal' }],
     );
-    setAccionistas(snap.accionistas?.length > 0 ? snap.accionistas : [{}]);
-    setBeneficiarios(snap.beneficiarios?.length > 0 ? snap.beneficiarios : [{}]);
-    setReferenciasComerciales(snap.referenciasComerciales?.length > 0 ? snap.referenciasComerciales : [{}, {}]);
-    setReferenciasBancarias(snap.referenciasBancarias?.length > 0 ? snap.referenciasBancarias : [{}, {}]);
-    setInfoBancariaPagos(snap.infoBancariaPagos?.length > 0 ? snap.infoBancariaPagos : [{}, {}]);
-    setDocumentos(snap.documentos ?? {});
+    setAccionistas(snapshot_recuperar_sesion.accionistas?.length > 0 ? snapshot_recuperar_sesion.accionistas : [{}]);
+    setBeneficiarios(snapshot_recuperar_sesion.beneficiarios?.length > 0 ? snapshot_recuperar_sesion.beneficiarios : [{}]);
+    setReferenciasComerciales(snapshot_recuperar_sesion.referenciasComerciales?.length > 0 ? snapshot_recuperar_sesion.referenciasComerciales : [{}, {}]);
+    setReferenciasBancarias(snapshot_recuperar_sesion.referenciasBancarias?.length > 0 ? snapshot_recuperar_sesion.referenciasBancarias : [{}, {}]);
+    setInfoBancariaPagos(snapshot_recuperar_sesion.infoBancariaPagos?.length > 0 ? snapshot_recuperar_sesion.infoBancariaPagos : [{}, {}]);
+    setDocumentos(snapshot_recuperar_sesion.documentos ?? {});
   }, [
     setFormData, setStep, setFormularioId, setCodigoPeticion,
+    setEstadoFormulario, setCamposACorregir, setFormDataOriginal,
+    setTablasOriginales,
     setJuntaDirectiva, setAccionistas, setBeneficiarios,
     setReferenciasComerciales, setReferenciasBancarias,
     setInfoBancariaPagos, setDocumentos,
@@ -106,8 +133,8 @@ export function useRecuperacionSesion(setters) {
 
   // Ref para que los effects de inicialización (dependencia []) siempre
   // tengan acceso a la versión más reciente de _restaurarDesdeSnapshot.
-  const restaurarRef = useRef(_restaurarDesdeSnapshot);
-  useEffect(() => { restaurarRef.current = _restaurarDesdeSnapshot; });
+  const restaurarDesdeSnapshotRef = useRef(_restaurarDesdeSnapshot);
+  useEffect(() => { restaurarDesdeSnapshotRef.current = _restaurarDesdeSnapshot; });
 
   // ── Resolución de token de diligenciamiento (enlace por correo) ───────────
   useEffect(() => {
@@ -119,10 +146,10 @@ export function useRecuperacionSesion(setters) {
       .then(formulario => {
         credencialesRef.current = { token_diligenciamiento: token };
         window.history.replaceState({}, '', window.location.pathname);
-        restaurarRef.current(_adaptarRespuestaServidor(formulario));
+        restaurarDesdeSnapshotRef.current(_adaptarRespuestaServidor(formulario));
       })
-      .catch((err) => {
-        if (err.code === 'ACCESO_EXPIRADO') {
+      .catch((errorToken) => {
+        if (errorToken.code === 'ACCESO_EXPIRADO') {
           setError('El enlace de acceso ha expirado. Ingrese su código de petición y PIN, o solicite un nuevo enlace.');
           setVisible(true);
         }
@@ -164,16 +191,8 @@ export function useRecuperacionSesion(setters) {
         eliminarBorradorDeStorage();
         setVisible(false);
       }
-    } catch (err) {
-      if (err.code === 'CREDENCIALES_INVALIDAS') {
-        setError('Código de petición o PIN incorrecto. Verifique los datos');
-      } else if (err.code === 'FORMULARIO_YA_ENVIADO') {
-        setError('Este formulario ya fue enviado y no puede recuperarse.');
-      } else if (err.code === 'ACCESO_EXPIRADO') {
-        setError('El acceso ha expirado. Solicite un nuevo enlace al área responsable.');
-      } else {
-        setError('Error al conectar con el servidor. Intente nuevamente.');
-      }
+    } catch (errorRecuperacion) {
+      setError(ERRORES_RECUPERACION[errorRecuperacion.code] ?? 'Error al conectar con el servidor. Intente nuevamente.');
     } finally {
       setCargando(false);
     }

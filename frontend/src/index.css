@@ -50,6 +50,24 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+
+  /* Corrección — naranja (Tailwind orange scale) */
+  --orange-50:  #fff7ed;
+  --orange-400: #fb923c;
+  --orange-500: #f97316;
+  --orange-600: #ea580c;
+  --orange-700: #c2410c;
+  --orange-800: #9a3412;
+  --orange-900: #7c2d12;
+  --orange-shadow: rgba(249, 115, 22, 0.15);
+
+  /* Corrección — verde (Tailwind green scale) */
+  --green-50:   #f0fdf4;
+  --green-600:  #16a34a;
+  --green-700:  #15803d;
+  --green-800:  #166534;
+  --green-900:  #14532d;
+  --green-shadow: rgba(22, 163, 74, 0.15);
 }
 
 * {
@@ -149,13 +167,17 @@ body {
    Progress Bar
    ======================================== */
 
-.progress-container {
+.progress-container,
+.form-card {
   background: white;
   border-radius: var(--radius-lg);
-  padding: 20px 28px;
-  margin-bottom: 28px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--gray-200);
+}
+
+.progress-container {
+  padding: 20px 28px;
+  margin-bottom: 28px;
 }
 
 .progress-header {
@@ -229,6 +251,7 @@ body {
 }
 
 .progress-step-dot .dot {
+  position: relative;
   width: 10px;
   height: 10px;
   border-radius: 50%;
@@ -264,17 +287,34 @@ body {
   color: var(--success);
 }
 
+/* Paso con campos de corrección pendiente */
+.progress-step-dot.tiene-correcciones .dot {
+  border-color: var(--orange-500);
+}
+
+.dot-correccion-badge {
+  position:      absolute;
+  top:           -4px;
+  right:         -4px;
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  background:    var(--orange-500);
+  border:        1.5px solid #fff;
+}
+
+.progress-step-dot.tiene-correcciones .step-label {
+  color: var(--orange-600);
+  font-weight: 600;
+}
+
 /* ========================================
    Form Sections
    ======================================== */
 
 .form-card {
-  background: white;
-  border-radius: var(--radius-lg);
   padding: 32px;
   margin-bottom: 24px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--gray-200);
   animation: fadeSlideIn 0.4s ease;
 }
 
@@ -684,6 +724,40 @@ body {
   border-color: var(--primary-400);
 }
 
+/* ── Toggle de producto bancario ── */
+.toggle-cuenta {
+  display: flex;
+  border: 1px solid var(--gray-300);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.toggle-cuenta__btn {
+  flex: 1;
+  padding: 5px 8px;
+  border: none;
+  background: white;
+  color: var(--gray-600);
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.toggle-cuenta__btn + .toggle-cuenta__btn {
+  border-left: 1px solid var(--gray-300);
+}
+
+.toggle-cuenta__btn--activo {
+  background: var(--primary-600);
+  color: white;
+}
+
+.toggle-cuenta--error {
+  border-color: var(--error, #e53e3e);
+}
+
 /* ========================================
    Buttons
    ======================================== */
@@ -778,12 +852,17 @@ body {
    Checkbox / Authorization box
    ======================================== */
 
-.auth-box {
-  background: var(--warning-light);
-  border-left: 4px solid var(--warning);
-  padding: 20px;
+.auth-box,
+.info-box {
+  border-left: 4px solid;
   border-radius: var(--radius-sm);
   margin-bottom: 20px;
+}
+
+.auth-box {
+  background: var(--warning-light);
+  border-color: var(--warning);
+  padding: 20px;
 }
 
 .auth-box p {
@@ -863,10 +942,8 @@ body {
 
 .info-box {
   background: var(--info-light);
-  border-left: 4px solid var(--info);
+  border-color: var(--info);
   padding: 14px 18px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 20px;
 }
 
 .info-box p {
@@ -1029,4 +1106,176 @@ body {
   .help-panel {
     width: 100vw;
   }
+}
+
+/* ── Corrección pendiente ────────────────────────────────────────────────────── */
+
+.banner-correccion-pendiente,
+.banner-correccion-completada {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  border: 1.5px solid;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.banner-correccion-pendiente {
+  background: var(--orange-50);
+  border-color: var(--orange-400);
+}
+
+.banner-correccion-icono,
+.banner-correccion-completada__icono {
+  font-size: 1.3rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.banner-correccion-icono { color: var(--orange-600); }
+
+.banner-correccion-titulo {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--orange-800);
+  margin: 0 0 6px;
+}
+
+.banner-correccion-texto {
+  font-size: 0.88rem;
+  color: var(--orange-900);
+  margin: 0 0 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.banner-correccion-hint {
+  font-size: 0.82rem;
+  color: var(--orange-800);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.banner-correccion-link {
+  background: none;
+  border: none;
+  color: var(--orange-700);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.banner-correccion-link:hover {
+  color: var(--orange-800);
+}
+
+/* Estructura base compartida para campos con corrección */
+.form-group.correccion-pendiente,
+.form-group.correccion-completada {
+  position: relative;
+  padding-left: 10px;
+  border-left: 3px solid;
+}
+
+/* Campo con corrección pendiente (naranja) */
+.form-group.correccion-pendiente              { border-left-color: var(--orange-500); }
+.form-group.correccion-pendiente .form-label  { color: var(--orange-700); }
+
+.form-group.correccion-pendiente .form-input,
+.form-group.correccion-pendiente .form-select,
+.form-group.correccion-pendiente .form-textarea {
+  border-color: var(--orange-500);
+  background-color: var(--orange-50);
+}
+
+.form-group.correccion-pendiente .form-input:focus,
+.form-group.correccion-pendiente .form-select:focus,
+.form-group.correccion-pendiente .form-textarea:focus {
+  border-color: var(--orange-600);
+  box-shadow: 0 0 0 3px var(--orange-shadow);
+  outline: none;
+}
+
+/* Campo con corrección completada (verde) */
+.form-group.correccion-completada              { border-left-color: var(--green-600); }
+.form-group.correccion-completada .form-label  { color: var(--green-700); }
+
+.form-group.correccion-completada .form-input,
+.form-group.correccion-completada .form-select,
+.form-group.correccion-completada .form-textarea {
+  border-color: var(--green-600);
+  background-color: var(--green-50);
+}
+
+.form-group.correccion-completada .form-input:focus,
+.form-group.correccion-completada .form-select:focus,
+.form-group.correccion-completada .form-textarea:focus {
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 3px var(--green-shadow);
+  outline: none;
+}
+
+.correccion-mark,
+.correccion-ok-mark {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 0.85rem;
+  cursor: default;
+}
+.correccion-mark    { color: var(--orange-600); }
+.correccion-ok-mark { color: var(--green-600); }
+
+.correccion-aviso,
+.correccion-aviso--ok {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.correccion-aviso    { color: var(--orange-600); }
+.correccion-aviso--ok { color: var(--green-600); }
+
+/* Bloque (sección / tabla) con corrección pendiente */
+.bloque-correccion-pendiente {
+  border-left: 3px solid var(--orange-500);
+  padding-left: 12px;
+  margin-left: -12px;
+}
+
+/* ── Banner de corrección completada (reemplaza al pendiente cuando todo está ok) ── */
+
+.banner-correccion-completada {
+  background: var(--green-50);
+  border-color: var(--green-600);
+  animation: banner-entrada 0.25s ease-out;
+}
+
+@keyframes banner-entrada {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.banner-correccion-completada__icono {
+  color: var(--green-600);
+  font-weight: 700;
+}
+
+.banner-correccion-completada__titulo {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--green-900);
+  margin: 0 0 4px;
+}
+
+.banner-correccion-completada__texto {
+  font-size: 0.88rem;
+  color: var(--green-800);
+  margin: 0;
+  line-height: 1.5;
 }

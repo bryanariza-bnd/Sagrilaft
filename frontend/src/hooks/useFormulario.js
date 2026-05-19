@@ -23,13 +23,19 @@ import {
 import { sanitizarPayload } from '../utils/normalizadores';
 import { obtenerCamposDeDocumento } from '../data/mapeoDocumentos';
 
+const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
 export function useFormulario() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
   const [helpField, setHelpField] = useState(null);
   const [formularioId, setFormularioId] = useState(null);
   const [codigoPeticion, setCodigoPeticion] = useState(null);
+  const [estadoFormulario, setEstadoFormulario] = useState(null);
+  const [camposACorregir, setCamposACorregir] = useState(null);
   const [documentos, setDocumentos] = useState({});
+  const [formDataOriginal, setFormDataOriginal] = useState(null);
+  const [tablasOriginales, setTablasOriginales] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState({});
   const [eliminandoDoc, setEliminandoDoc] = useState({});
@@ -92,6 +98,8 @@ export function useFormulario() {
   // Setters agrupados: los consumen tanto useFormPersistencia como useRecuperacionSesion
   const _setters = {
     setFormData, setStep, setFormularioId, setCodigoPeticion,
+    setEstadoFormulario, setCamposACorregir, setFormDataOriginal,
+    setTablasOriginales,
     setJuntaDirectiva, setAccionistas, setBeneficiarios,
     setReferenciasComerciales, setReferenciasBancarias,
     setInfoBancariaPagos, setDocumentos,
@@ -212,6 +220,9 @@ export function useFormulario() {
     setEstadoConfirmacion({ visible: false, tipoDoc: null });
   }, []);
 
+  const _quitarDocumento = (tipo) =>
+    setDocumentos(({ [tipo]: _, ...resto }) => resto);
+
   const confirmarEliminacion = useCallback(async () => {
     const { tipoDoc } = estadoConfirmacion;
     if (!tipoDoc) return;
@@ -220,11 +231,7 @@ export function useFormulario() {
     setEstadoConfirmacion({ visible: false, tipoDoc: null });
 
     if (!docToDelete) {
-      setDocumentos(prev => {
-        const updated = { ...prev };
-        delete updated[tipoDoc];
-        return updated;
-      });
+      _quitarDocumento(tipoDoc);
       return;
     }
 
@@ -245,11 +252,7 @@ export function useFormulario() {
         });
       }
 
-      setDocumentos(prev => {
-        const updated = { ...prev };
-        delete updated[tipoDoc];
-        return updated;
-      });
+      _quitarDocumento(tipoDoc);
     } catch (err) {
       console.error(`Error eliminando ${tipoDoc}:`, err);
       alert('Error al intentar eliminar el documento. Intente nuevamente.');
@@ -371,21 +374,30 @@ export function useFormulario() {
         setInfoBancariaPagos(purged.infoBancariaPagos);
       }
       setStep(prev => Math.min(prev + 1, TOTAL_STEPS));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollTop();
     }
   };
 
   const handlePrev = () => {
     setStep(prev => Math.max(prev - 1, 1));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollTop();
   };
 
-  const handleStepClick = (stepNum) => {
+  const handleStepClick = useCallback((stepNum) => {
     if (stepNum < step) {
       setStep(stepNum);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollTop();
     }
-  };
+  }, [step]);
+
+  // Navegación incondicional usada exclusivamente por el flujo de corrección.
+  // No aplica la restricción de "solo hacia atrás" de handleStepClick porque
+  // la contraparte debe poder saltar directamente al paso con campos marcados
+  // independientemente de dónde guardó el formulario por última vez.
+  const irAPasoCorreccion = useCallback((stepNum) => {
+    setStep(stepNum);
+    scrollTop();
+  }, []);
 
   // ── Helpers de envío final ──────────────────────────────────────────────────
 
@@ -420,16 +432,18 @@ export function useFormulario() {
    */
   const _navegarAlPrimerPasoConError = (errores) => {
     const tieneErroresPaso4 = CLAVES_ERROR_PASO4.some(k => errores[k]);
+    const tieneErroresPaso6 = CLAVES_ERROR_PASO6.some(k => errores[k]);
     const tieneErroresPaso7 = CLAVES_ERROR_PASO7.some(k => errores[k]);
     const primerPaso = [2, 3, 4, 5, 6, 7, 8].find(s => {
       if (s === 4) return tieneErroresPaso4;
+      if (s === 6) return tieneErroresPaso6 || (CAMPOS_REQUERIDOS[6] || []).some(f => errores[f]);
       if (s === 7) return tieneErroresPaso7;
       return (CAMPOS_REQUERIDOS[s] || []).some(f => errores[f]) ||
         (s === 8 && (errores.autorizacion_datos || errores.declaracion_origen_fondos));
     });
     if (primerPaso) {
       setStep(primerPaso);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollTop();
     }
   };
 
@@ -475,7 +489,7 @@ export function useFormulario() {
   return {
     step, formData, errors, helpField, setHelpField,
     recuperacion,
-    codigoPeticion, documentos, saving, uploadingDoc, eliminandoDoc,
+    codigoPeticion, estadoFormulario, camposACorregir, formDataOriginal, tablasOriginales, documentos, saving, uploadingDoc, eliminandoDoc,
     estadoConfirmacion, confirmarEliminacion, cancelarEliminacion,
     juntaDirectiva, accionistas, beneficiarios, submitted, lastSaved,
     referenciasComerciales, handleReferenciaChange: onReferenciaChange, addReferencia, eliminarReferencia: onEliminarReferencia,
@@ -483,7 +497,7 @@ export function useFormulario() {
     infoBancariaPagos, handleInfoBancariaPagosChange: onInfoBancariaPagosChange, addInfoBancariaPagos, eliminarInfoBancariaPagos: onEliminarInfoBancariaPagos,
     handleChange, handleMonedaExtranjeraChange, handleActividadChange, handleTiposTransaccionChange,
     handleFileChange, handleRemoveFile, handleSaveDraft,
-    handleNext, handlePrev, handleStepClick, handleSubmit,
+    handleNext, handlePrev, handleStepClick, irAPasoCorreccion, handleSubmit,
     handleJuntaChange: onJuntaChange, handleJuntaTipoIdChange: onJuntaTipoIdChange, addJuntaMember, eliminarJuntaMember: onEliminarJuntaMember,
     handleAccionistaChange: onAccionistaChange, handleAccionistaTipoIdChange: onAccionistaTipoIdChange, addAccionista, eliminarAccionista: onEliminarAccionista,
     handleBeneficiarioChange: onBeneficiarioChange, handleBeneficiarioTipoIdChange: onBeneficiarioTipoIdChange, addBeneficiario, eliminarBeneficiario: onEliminarBeneficiario,

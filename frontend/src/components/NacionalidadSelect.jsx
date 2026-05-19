@@ -14,13 +14,14 @@ import Select from 'react-select';
 import countries from 'i18n-iso-countries';
 import esLocale from 'i18n-iso-countries/langs/es.json';
 import { HelpIcon } from './HelpPanel';
-import helpTexts from '../data/helpTexts';
+import textosAyudaCampos from '../data/helpTexts';
 import { buildSelectStyles } from '../utils/selectStyles';
+import { useCorreccion } from '../context/CorreccionContext';
 
 countries.registerLocale(esLocale);
 
 /** Lista de países ordenada alfabéticamente en español. */
-const PAISES_OPTIONS = Object.entries(countries.getNames('es', { select: 'official' }))
+const PAISES_OPCIONES = Object.entries(countries.getNames('es', { select: 'official' }))
   .map(([code, name]) => ({ value: code, label: name }))
   .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 
@@ -33,38 +34,66 @@ export default function NacionalidadSelect({
   error,
   placeholder = 'Seleccione un país...',
 }) {
-  const hasHelp = !!helpTexts[name];
+  const { esCampoConCorreccion } = useCorreccion();
+  const marcado = esCampoConCorreccion(name);
+  const tieneValor = !!value;
+  const correccionPendiente  = marcado && !tieneValor && !error;
+  const correccionCompletada = marcado && tieneValor;
+
+  const tieneAyuda = !!textosAyudaCampos[name];
+
+  const groupClasses = [
+    'form-group',
+    correccionPendiente  ? 'correccion-pendiente'  : '',
+    correccionCompletada ? 'correccion-completada' : '',
+  ].filter(Boolean).join(' ');
 
   // Convierte el código ISO almacenado en el option que react-select necesita
-  const selectedOption = useMemo(
-    () => PAISES_OPTIONS.find((o) => o.value === value) ?? null,
+  const opcionSeleccionada = useMemo(
+    () => PAISES_OPCIONES.find((opcion) => opcion.value === value) ?? null,
     [value],
   );
 
-  const handleChange = (option) => {
-    onChange({ target: { name, value: option?.value ?? '', type: 'text' } });
+  const handleChange = (opcionElegida) => {
+    onChange({ target: { name, value: opcionElegida?.value ?? '', type: 'text' } });
   };
 
   return (
-    <div className="form-group">
+    <div className={groupClasses}>
       <label className="form-label">
         Nacionalidad
         {required && <span className="required-mark">*</span>}
-        {hasHelp && <HelpIcon fieldKey={name} onOpenHelp={onOpenHelp} />}
+        {correccionPendiente && (
+          <span className="correccion-mark" title="Este campo requiere corrección" aria-label="Requiere corrección">
+            ✎
+          </span>
+        )}
+        {correccionCompletada && (
+          <span className="correccion-ok-mark" title="Corrección completada" aria-label="Corregido">
+            ✓
+          </span>
+        )}
+        {tieneAyuda && <HelpIcon fieldKey={name} onOpenHelp={onOpenHelp} />}
       </label>
 
       <Select
         inputId={name}
         name={name}
-        value={selectedOption}
+        value={opcionSeleccionada}
         onChange={handleChange}
-        options={PAISES_OPTIONS}
+        options={PAISES_OPCIONES}
         isClearable
         placeholder={placeholder}
         noOptionsMessage={() => 'Sin resultados'}
-        styles={buildSelectStyles(!!error, !!value)}
+        styles={buildSelectStyles(!!error, tieneValor, correccionPendiente)}
       />
 
+      {correccionPendiente && !error && (
+        <div className="correccion-aviso">Este campo requiere corrección</div>
+      )}
+      {correccionCompletada && (
+        <div className="correccion-aviso correccion-aviso--ok">Corrección completada</div>
+      )}
       {error && <div className="field-error">{error}</div>}
     </div>
   );

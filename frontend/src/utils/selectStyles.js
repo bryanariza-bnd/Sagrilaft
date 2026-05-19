@@ -2,10 +2,11 @@
  * Estilos react-select alineados al Design System SAGRILAFT.
  * Fuente única de verdad para todos los componentes basados en react-select.
  *
- * hasError  → borde rojo + sombra roja
- * hasValue  → borde verde cuando hay valor válido
+ * hasError      → borde rojo + sombra roja
+ * hasValue      → borde verde cuando hay valor válido
+ * hasCorreccion → borde naranja + fondo ámbar (campo marcado para corrección)
  */
-export const buildSelectStyles = (hasError, hasValue) => ({
+export const buildSelectStyles = (hasError, hasValue, hasCorreccion = false) => ({
   control: (base, state) => ({
     ...base,
     minHeight: '40px',
@@ -13,10 +14,11 @@ export const buildSelectStyles = (hasError, hasValue) => ({
     fontSize: '0.9rem',
     fontFamily: 'inherit',
     color: '#1e293b',
-    backgroundColor: state.isDisabled ? '#f8fafc' : 'white',
+    backgroundColor: state.isDisabled ? '#f8fafc' : hasCorreccion ? '#fff7ed' : 'white',
     border: `1.5px solid ${
       state.isFocused ? '#818cf8'
       : hasError       ? '#ef4444'
+      : hasCorreccion  ? '#f97316'
       : hasValue       ? '#10b981'
       : '#cbd5e1'
     }`,
@@ -25,7 +27,9 @@ export const buildSelectStyles = (hasError, hasValue) => ({
       ? '0 0 0 3px #eef2ff'
       : hasError
         ? '0 0 0 3px #fee2e2'
-        : 'none',
+        : hasCorreccion
+          ? '0 0 0 3px rgba(249, 115, 22, 0.15)'
+          : 'none',
     transition: 'all 0.2s ease',
     cursor: state.isDisabled ? 'not-allowed' : 'default',
     opacity: state.isDisabled ? 0.6 : 1,
