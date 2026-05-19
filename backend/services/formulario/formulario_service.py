@@ -155,6 +155,9 @@ class FormularioService:
             content_type=content_type,
             tamano=len(contenido_bytes),
         )
+        # El commit dentro de registrar_documento_en_bd expira todos los objetos
+        # de la sesión. Refrescar antes de pasarlo al análisis evita ObjectDeletedError.
+        self._sesion.refresh(formulario)
 
         return await self._analisis.analizar_nueva_carga(
             documento=documento,
