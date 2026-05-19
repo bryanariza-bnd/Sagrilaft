@@ -1,5 +1,5 @@
 import { HelpIcon } from './HelpPanel';
-import helpTexts from '../data/helpTexts';
+import textosAyudaCampos from '../data/helpTexts';
 
 /**
  * Campo de carga de archivo con drag-and-drop y estado de uploading.
@@ -11,7 +11,7 @@ export default function FileUploadField({
 }) {
   const doc = documentos[tipoDoc];
   const helpKey = `doc_${tipoDoc}`;
-  const hasHelp = !!helpTexts[helpKey];
+  const tieneAyuda = !!textosAyudaCampos[helpKey];
 
   const fileName = doc?.nombre_archivo ?? doc?.name ?? null;
   const fileSize = doc?.tamano ?? doc?.size ?? null;
@@ -46,7 +46,7 @@ export default function FileUploadField({
     <div style={{ marginBottom: '16px' }}>
       <label className="form-label">
         {label}
-        {hasHelp && <HelpIcon fieldKey={helpKey} onOpenHelp={onOpenHelp} />}
+        {tieneAyuda && <HelpIcon fieldKey={helpKey} onOpenHelp={onOpenHelp} />}
         {hint && (
           <span style={{ fontWeight: '400', color: 'var(--warning)', fontSize: '0.75rem', marginLeft: '8px' }}>
             ({hint})

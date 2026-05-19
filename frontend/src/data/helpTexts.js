@@ -2,7 +2,7 @@
  * Textos de ayuda para cada campo del formulario SAGRILAFT.
  * Cada campo tiene un título y una descripción que se muestra en el panel lateral.
  */
-const helpTexts = {
+const textosAyudaCampos = {
   // Clasificación
   tipo_contraparte: {
     titulo: "Tipo de Contraparte",
@@ -125,7 +125,7 @@ La clasificación se relaciona con el CIIU
   },
   nacionalidad: {
     titulo: "Nacionalidad",
-    descripcion: "País de nacionalidad del representante legal.",
+    descripcion: "Selecciona el país al que perteneces legalmente. Si tienes doble nacionalidad, selecciona la que corresponda al documento de identidad que estás proporcionando.",
   },
   fecha_nacimiento: {
     titulo: "Fecha de Nacimiento",
@@ -137,12 +137,12 @@ La clasificación se relaciona con el CIIU
   },
   profesion: {
     titulo: "Profesión",
-    descripcion: "Profesión o título profesional del representante legal.",
+    descripcion: "Profesión o título profesional del representante legal o de la persona natural. Si no tiene profesión, indique su ocupación principal.",
     ejemplo: "Ingeniero de Sistemas, Abogado, Administrador de Empresas"
   },
   correo_representante: {
     titulo: "Correo Electrónico del Representante",
-    descripcion: "Correo electrónico directo del representante legal.",
+    descripcion: "Correo electrónico directo del representante legal o de la persona natural.",
   },
   telefono_representante: {
     titulo: "Teléfono del Representante",
@@ -277,4 +277,4 @@ La clasificación se relaciona con el CIIU
   },
 };
 
-export default helpTexts;
+export default textosAyudaCampos;

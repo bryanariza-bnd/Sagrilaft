@@ -74,6 +74,36 @@ export function CeldaPEP({ item, err, onChange }) {
   );
 }
 
+const TIPOS_PRODUCTO_BANCARIO = [
+  { value: 'cuenta_corriente', label: 'Cuenta corriente' },
+  { value: 'cuenta_ahorros',   label: 'Cuenta ahorros'   },
+];
+
+export function CeldaToggleProducto({ valor, err, onChange }) {
+  const clsWrap = ['toggle-cuenta', err ? 'toggle-cuenta--error' : ''].filter(Boolean).join(' ');
+  return (
+    <td>
+      <div className={clsWrap}>
+        {TIPOS_PRODUCTO_BANCARIO.map(({ value, label }) => {
+          const activo = valor === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              className={['toggle-cuenta__btn', activo ? 'toggle-cuenta__btn--activo' : ''].filter(Boolean).join(' ')}
+              onClick={() => onChange(activo ? '' : value)}
+              aria-pressed={activo}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <MensajeError msg={err} />
+    </td>
+  );
+}
+
 export function CeldaIdentificacion({ item, err, tiposId, onTipoChange, onNumeroChange }) {
   return (
     <>

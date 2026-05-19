@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import helpTexts from '../data/helpTexts';
+import textosAyudaCampos from '../data/helpTexts';
 
 /**
  * Panel lateral de ayuda que se despliega al hacer click en el ícono "?".
  */
 export default function HelpPanel({ fieldKey, onClose }) {
-  const help = helpTexts[fieldKey];
+  const help = textosAyudaCampos[fieldKey];
 
   if (!help) return null;
 

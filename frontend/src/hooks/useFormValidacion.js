@@ -5,7 +5,7 @@
  * SRP: única responsabilidad = saber qué campos son válidos en cada paso.
  */
 import { useState, useCallback } from 'react';
-import helpTexts from '../data/helpTexts';
+import textosAyudaCampos from '../data/helpTexts';
 import { CAMPOS_REQUERIDOS, CAMPOS_CONDICIONALES } from '../data/formularioConfig';
 import { validarReglasEspeciales } from '../utils/inputValidation';
 
@@ -20,7 +20,7 @@ export function useFormValidacion(formData) {
     for (const field of campos) {
       const valor = formData[field];
       if (!valor || (typeof valor === 'string' && !valor.trim())) {
-        camposErr[field] = `${helpTexts[field]?.titulo || field} es obligatorio`;
+        camposErr[field] = `${textosAyudaCampos[field]?.titulo || field} es obligatorio`;
       }
     }
 
@@ -36,7 +36,7 @@ export function useFormValidacion(formData) {
         for (const campo of camposCondicionados) {
           const valor = formData[campo];
           if (!valor || (typeof valor === 'string' && !valor.trim())) {
-            camposErr[campo] = mensajes[campo] ?? `${helpTexts[campo]?.titulo || campo} es obligatorio`;
+            camposErr[campo] = mensajes[campo] ?? `${textosAyudaCampos[campo]?.titulo || campo} es obligatorio`;
           }
         }
       }

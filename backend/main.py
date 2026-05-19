@@ -42,7 +42,8 @@ logger = logging.getLogger(__name__)
 
 _NOMBRE_SERVICIO = "SAGRILAFT API"
 _VERSION_SERVICIO = "2.0.0"
-
+_ESTADO = 'activo'
+_MODO_IA = 'bedrock'
 
 def _respuesta_error(status_code: int, detalle: str, *, hint: str | None = None) -> JSONResponse:
     contenido = {"detail": detalle}
@@ -125,6 +126,7 @@ def _registrar_manejadores_excepcion(app: FastAPI) -> None:
 
 def _configurar_middlewares(app: FastAPI) -> None:
     # Se mantiene el comportamiento original: `load_config()` se evalúa al crear la app.
+    #TENER EN CUENTA EN DESPLIEGUE Y PRODUCCION.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=load_config().frontend_urls,
@@ -154,8 +156,8 @@ def _crear_app() -> FastAPI:
         return {
             "servicio": _NOMBRE_SERVICIO,
             "version": _VERSION_SERVICIO,
-            "estado": "activo",
-            "modo_ia": "bedrock",
+            "estado": _ESTADO,
+            "modo_ia": _MODO_IA,
         }
 
     return app
