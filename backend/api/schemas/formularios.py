@@ -240,6 +240,7 @@ class FormularioResponse(FormularioBase):
     id: str
     codigo_peticion: str
     estado: EstadoFormulario
+    campos_a_corregir: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

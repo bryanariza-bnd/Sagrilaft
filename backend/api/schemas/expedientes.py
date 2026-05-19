@@ -3,9 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 from infrastructure.persistencia.models import EstadoFormulario, TipoContraparte, TipoPersona
+from domain.catalogo_correcciones import validar_campos_identificados
 
 from .comunes import a_iso_utc
 
@@ -71,6 +72,18 @@ class SolicitudDevolucion(BaseModel):
             "Este texto se incluye en el correo enviado al destinatario."
         ),
     )
+    campos_identificados: List[str] = Field(
+        default_factory=list,
+        description=(
+            "IDs de los campos específicos del formulario que requieren corrección. "
+            "Deben corresponder a identificadores del catálogo de campos del formulario."
+        ),
+    )
+
+    @field_validator("campos_identificados")
+    @classmethod
+    def _validar_campos(cls, v: List[str]) -> List[str]:
+        return validar_campos_identificados(v)
 
 
 class ResumenDevolucion(BaseModel):

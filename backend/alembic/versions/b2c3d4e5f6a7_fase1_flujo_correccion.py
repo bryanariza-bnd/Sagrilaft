@@ -11,6 +11,9 @@ Create Date: 2026-05-12 00:00:00.000000
 """
 from typing import Sequence, Union
 
+import sqlalchemy as sa
+from alembic import op
+
 # revision identifiers, used by Alembic.
 revision: str = 'b2c3d4e5f6a7'
 down_revision: Union[str, Sequence[str], None] = 'c3f1a2b4d5e6'
@@ -19,8 +22,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    pass
+    op.add_column(
+        'formularios',
+        sa.Column('campos_a_corregir', sa.Text(), nullable=True),
+    )
 
 
 def downgrade() -> None:
-    pass
+    op.drop_column('formularios', 'campos_a_corregir')

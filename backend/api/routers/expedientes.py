@@ -139,6 +139,7 @@ def devolver_expediente(
     return servicio.devolver_para_correccion(
         formulario_id=formulario_id,
         especificaciones=solicitud.especificaciones,
+        campos_identificados=solicitud.campos_identificados,
         acceso_service=acceso_service,
         email_service=email_service,
     )

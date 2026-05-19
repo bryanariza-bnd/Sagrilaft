@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from core.configuracion import SmtpConfig
+from domain.catalogo_correcciones import resolver_etiquetas
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +28,14 @@ class EmailService:
         correo_destinatario: str,
         especificaciones_correccion: str,
         enlace_diligenciamiento: str | None = None,
+        campos_identificados: list[str] | None = None,
     ) -> bool:
         """
         Notifica al destinatario que debe corregir su formulario SAGRILAFT.
+
+        Si se proporcionan campos_identificados, el correo los lista con sus
+        etiquetas legibles para que la contraparte sepa exactamente qué corregir
+        antes de abrir el formulario.
 
         Returns:
             True si el correo se envió correctamente; False si SMTP no está
@@ -43,8 +49,12 @@ class EmailService:
             return False
 
         asunto      = "Formulario SAGRILAFT — Requiere correcciones"
-        cuerpo_texto = _construir_cuerpo_texto(especificaciones_correccion, enlace_diligenciamiento)
-        cuerpo_html  = _construir_cuerpo_html(especificaciones_correccion, enlace_diligenciamiento)
+        cuerpo_texto = _construir_cuerpo_texto(
+            especificaciones_correccion, enlace_diligenciamiento, campos_identificados,
+        )
+        cuerpo_html  = _construir_cuerpo_html(
+            especificaciones_correccion, enlace_diligenciamiento, campos_identificados,
+        )
         remitente    = self._config.remitente or self._config.usuario
 
         mensaje = _construir_mensaje(
@@ -94,7 +104,17 @@ def _construir_mensaje(
     return mensaje
 
 
-def _construir_cuerpo_texto(especificaciones: str, enlace: str | None) -> str:
+def _construir_cuerpo_texto(
+    especificaciones: str,
+    enlace: str | None,
+    campos_identificados: list[str] | None = None,
+) -> str:
+    seccion_campos = ""
+    if campos_identificados:
+        etiquetas = resolver_etiquetas(campos_identificados)
+        lineas = "\n".join(f"  - {e}" for e in etiquetas)
+        seccion_campos = f"\nCampos que requieren corrección:\n{lineas}\n"
+
     seccion_enlace = (
         f"\nAcceda aquí para realizar las correcciones:\n{enlace}\n"
         if enlace
@@ -105,12 +125,17 @@ def _construir_cuerpo_texto(especificaciones: str, enlace: str | None) -> str:
         "Usted ha sido requerido para completar/modificar la siguiente información "
         "del formulario:\n\n"
         f"{especificaciones}\n"
+        f"{seccion_campos}"
         f"{seccion_enlace}\n"
         "Equipo Blend360"
     )
 
 
-def _construir_cuerpo_html(especificaciones: str, enlace: str | None) -> str:
+def _construir_cuerpo_html(
+    especificaciones: str,
+    enlace: str | None,
+    campos_identificados: list[str] | None = None,
+) -> str:
     especificaciones_escapadas = (
         especificaciones
         .replace("&", "&amp;")
@@ -118,6 +143,16 @@ def _construir_cuerpo_html(especificaciones: str, enlace: str | None) -> str:
         .replace(">", "&gt;")
         .replace("\n", "<br>")
     )
+
+    seccion_campos_html = ""
+    if campos_identificados:
+        etiquetas = resolver_etiquetas(campos_identificados)
+        items = "".join(f"<li>{e}</li>" for e in etiquetas)
+        seccion_campos_html = (
+            '<p style="font-weight:700; margin-bottom: 6px;">Campos que requieren corrección:</p>'
+            f'<ul style="margin: 0 0 16px; padding-left: 20px; color: #92400e;">{items}</ul>'
+        )
+
     seccion_enlace_html = (
         f'<p style="text-align:center; margin: 24px 0;">'
         f'<a href="{enlace}" '
@@ -139,6 +174,7 @@ def _construir_cuerpo_html(especificaciones: str, enlace: str | None) -> str:
   <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 4px; margin: 16px 0; white-space: pre-wrap;">
     {especificaciones_escapadas}
   </div>
+  {seccion_campos_html}
   {seccion_enlace_html}
   <p style="color: #64748b; font-size: 0.85em; margin-top: 32px;">Equipo SAGRILAFT</p>
 </body>

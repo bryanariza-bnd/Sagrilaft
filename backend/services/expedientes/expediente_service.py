@@ -8,6 +8,7 @@ Responsabilidades:
   - Aprobar o rechazar un formulario enviado (cambio de estado manual).
 """
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -232,6 +233,7 @@ class ExpedienteService:
         self,
         formulario_id: str,
         especificaciones: str,
+        campos_identificados: List[str],
         acceso_service: "AccesoManualService",
         email_service: Optional["EmailService"] = None,
     ) -> Dict[str, Any]:
@@ -240,6 +242,9 @@ class ExpedienteService:
 
         Transiciones permitidas: ENVIADO → EN_CORRECCION, VALIDADO → EN_CORRECCION.
         Reactiva el acceso manual vinculado y notifica al destinatario por correo.
+
+        Los campos_identificados se persisten como JSON junto con las especificaciones,
+        permitiendo que el formulario destaque visualmente los campos que requieren atención.
         """
         formulario = self._buscar_formulario_expediente(formulario_id)
 
@@ -254,7 +259,10 @@ class ExpedienteService:
             )
 
         formulario.estado            = EstadoFormulario.EN_CORRECCION
-        formulario.campos_a_corregir = especificaciones
+        formulario.campos_a_corregir = json.dumps(
+            {"especificaciones": especificaciones, "campos": campos_identificados},
+            ensure_ascii=False,
+        )
 
         datos_acceso = acceso_service.reactivar_acceso_para_correccion(formulario_id)
         self._sesion.commit()
@@ -268,6 +276,7 @@ class ExpedienteService:
                 correo_destinatario=correo_notificado,
                 especificaciones_correccion=especificaciones,
                 enlace_diligenciamiento=enlace_acceso,
+                campos_identificados=campos_identificados or None,
             )
 
         return {
