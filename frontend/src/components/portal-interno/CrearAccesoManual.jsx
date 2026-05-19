@@ -29,7 +29,7 @@ import { REGEX_CORREO } from '../../utils/constantes';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
-const ESTADO_INICIAL_FORM = {
+const ESTADO_INICIAL_ACCESO = {
   tipo_contraparte:    '',
   razon_social:        '',
   correo_destinatario: '',
@@ -57,7 +57,7 @@ const TEXTOS_VISTA = {
 
 // ── Estilos ───────────────────────────────────────────────────────────────────
 
-const s = {
+const ESTILOS = {
   pagina: {
     minHeight: '100vh',
     background: 'var(--gray-50, #f8fafc)',
@@ -301,7 +301,17 @@ const s = {
     color: '#991b1b',
     marginBottom: '16px',
   },
+  errorCampo: {
+    fontSize: '0.78rem',
+    color: 'var(--error, #ef4444)',
+    marginTop: '4px',
+    display: 'block',
+  },
 };
+
+// ── Constante de campo requerido ──────────────────────────────────────────────
+
+const ASTERISCO = <span style={{ color: 'var(--error, #ef4444)' }}>*</span>;
 
 // ── Validación de formulario ──────────────────────────────────────────────────
 
@@ -323,29 +333,29 @@ function validarCamposAcceso(formData) {
 function EncabezadoConTabs({ vistaEfectiva, onCambiarVista }) {
   return (
     <>
-      <div style={s.encabezado}>
-        <div style={s.badge}>Portal Interno</div>
-        <h1 style={s.titulo}>{TEXTOS_VISTA[vistaEfectiva].titulo}</h1>
-        <p style={s.subtitulo}>{TEXTOS_VISTA[vistaEfectiva].subtitulo}</p>
+      <div style={ESTILOS.encabezado}>
+        <div style={ESTILOS.badge}>Portal Interno</div>
+        <h1 style={ESTILOS.titulo}>{TEXTOS_VISTA[vistaEfectiva].titulo}</h1>
+        <p style={ESTILOS.subtitulo}>{TEXTOS_VISTA[vistaEfectiva].subtitulo}</p>
       </div>
 
-      <div style={s.navTabs}>
+      <div style={ESTILOS.navTabs}>
         <button
-          style={s.tab(vistaEfectiva === 'crear' || vistaEfectiva === 'exito')}
+          style={ESTILOS.tab(vistaEfectiva === 'crear' || vistaEfectiva === 'exito')}
           onClick={() => onCambiarVista('crear')}
           type="button"
         >
           Crear acceso
         </button>
         <button
-          style={s.tab(vistaEfectiva === 'listar')}
+          style={ESTILOS.tab(vistaEfectiva === 'listar')}
           onClick={() => onCambiarVista('listar')}
           type="button"
         >
           Ver accesos
         </button>
         <button
-          style={s.tab(vistaEfectiva === 'expedientes')}
+          style={ESTILOS.tab(vistaEfectiva === 'expedientes')}
           onClick={() => onCambiarVista('expedientes')}
           type="button"
         >
@@ -356,28 +366,81 @@ function EncabezadoConTabs({ vistaEfectiva, onCambiarVista }) {
   );
 }
 
+function CampoSelect({ id, label, value, onChange, options, error, disabled }) {
+  return (
+    <div style={ESTILOS.campo}>
+      <label style={ESTILOS.label} htmlFor={id}>
+        {label} {ASTERISCO}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={e => onChange(id, e.target.value)}
+        style={{ ...ESTILOS.select, ...(error ? ESTILOS.inputError : {}) }}
+        disabled={disabled}
+      >
+        <option value="">Seleccionar…</option>
+        {options.map(({ valor, etiqueta }) => (
+          <option key={valor} value={valor}>{etiqueta}</option>
+        ))}
+      </select>
+      {error && <span style={ESTILOS.errorCampo}>{error}</span>}
+    </div>
+  );
+}
+
+function CampoInput({ id, label, type = 'text', placeholder, value, onChange,
+                      onFocus, onBlur, style, error, disabled }) {
+  return (
+    <div style={ESTILOS.campo}>
+      <label style={ESTILOS.label} htmlFor={id}>
+        {label} {ASTERISCO}
+      </label>
+      <input
+        id={id} type={type} placeholder={placeholder}
+        value={value} onChange={e => onChange(id, e.target.value)}
+        onFocus={onFocus} onBlur={onBlur}
+        style={style} disabled={disabled}
+      />
+      {error && <span style={ESTILOS.errorCampo}>{error}</span>}
+    </div>
+  );
+}
+
+function ItemCredencial({ label, valor, monospace = true }) {
+  const estiloValor = monospace
+    ? ESTILOS.credencialValor
+    : { ...ESTILOS.credencialValor, fontFamily: 'inherit', letterSpacing: 0 };
+  return (
+    <div style={ESTILOS.credencial}>
+      <span style={ESTILOS.credencialLabel}>{label}</span>
+      <span style={estiloValor}>{valor}</span>
+    </div>
+  );
+}
+
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function CrearAccesoManual() {
   const [vistaActual, setVistaActual]   = useState('crear');
-  const [formData, setFormData]         = useState(ESTADO_INICIAL_FORM);
+  const [formData, setFormData]         = useState(ESTADO_INICIAL_ACCESO);
   const [erroresCampo, setErroresCampo] = useState({});
   const [errorGlobal, setErrorGlobal]   = useState(null);
   const [cargando, setCargando]         = useState(false);
   const [resultado, setResultado]       = useState(null);
   const [copiado, setCopiado]           = useState(false);
-  const [focusField, setFocusField]     = useState(null);
+  const [campoEnfocado, setCampoEnfocado]  = useState(null);
 
-  const timeoutRef = useRef(null);
+  const temporizadorRef = useRef(null);
 
   const vistaEfectiva = vistaActual === 'crear' && resultado ? 'exito' : vistaActual;
 
-  useEffect(() => () => clearTimeout(timeoutRef.current), []);
+  useEffect(() => () => clearTimeout(temporizadorRef.current), []);
 
   const handleCambiarVista = useCallback((vista) => {
     if (vista === 'crear' && resultado) {
       setResultado(null);
-      setFormData(ESTADO_INICIAL_FORM);
+      setFormData(ESTADO_INICIAL_ACCESO);
       setErroresCampo({});
       setErrorGlobal(null);
     }
@@ -390,7 +453,7 @@ export default function CrearAccesoManual() {
     setErrorGlobal(null);
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     const errores = validarCamposAcceso(formData);
     if (Object.keys(errores).length > 0) {
@@ -403,33 +466,33 @@ export default function CrearAccesoManual() {
     try {
       const acceso = await api.crearAccesoManual(formData);
       setResultado(acceso);
-    } catch (err) {
+    } catch (errorCreacion) {
       setErrorGlobal('Error al crear el acceso. Verifique los datos e intente nuevamente.');
     } finally {
       setCargando(false);
     }
-  };
+  }, [formData]);
 
   const handleCopiarEnlace = () => {
     if (!resultado) return;
     navigator.clipboard.writeText(resultado.enlace_diligenciamiento).then(() => {
       setCopiado(true);
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setCopiado(false), 2500);
+      clearTimeout(temporizadorRef.current);
+      temporizadorRef.current = setTimeout(() => setCopiado(false), 2500);
     });
   };
 
   const estiloInput = (campo) => ({
-    ...s.input,
-    ...(focusField === campo ? s.inputFocus : {}),
-    ...(erroresCampo[campo] ? s.inputError : {}),
+    ...ESTILOS.input,
+    ...(campoEnfocado === campo ? ESTILOS.inputFocus : {}),
+    ...(erroresCampo[campo] ? ESTILOS.inputError : {}),
   });
 
   // ── Vista: formularios recibidos ──────────────────────────────────────────
   if (vistaEfectiva === 'expedientes') {
     return (
-      <div style={s.pagina}>
-        <div style={s.contenedor}>
+      <div style={ESTILOS.pagina}>
+        <div style={ESTILOS.contenedor}>
           <EncabezadoConTabs vistaEfectiva={vistaEfectiva} onCambiarVista={handleCambiarVista} />
           <VistaExpedientes />
         </div>
@@ -440,8 +503,8 @@ export default function CrearAccesoManual() {
   // ── Vista: listado ────────────────────────────────────────────────────────
   if (vistaEfectiva === 'listar') {
     return (
-      <div style={s.pagina}>
-        <div style={s.contenedor}>
+      <div style={ESTILOS.pagina}>
+        <div style={ESTILOS.contenedor}>
           <EncabezadoConTabs vistaEfectiva={vistaEfectiva} onCambiarVista={handleCambiarVista} />
           <ListaAccesosManuales mensajeVacio="No hay accesos creados aún. Crea el primero desde la pestaña Crear acceso." />
         </div>
@@ -452,64 +515,45 @@ export default function CrearAccesoManual() {
   // ── Vista: resultado exitoso ──────────────────────────────────────────────
   if (vistaEfectiva === 'exito') {
     return (
-      <div style={s.pagina}>
-        <div style={s.contenedor}>
+      <div style={ESTILOS.pagina}>
+        <div style={ESTILOS.contenedor}>
           <EncabezadoConTabs vistaEfectiva={vistaEfectiva} onCambiarVista={handleCambiarVista} />
 
-          <div style={s.panelExito}>
-            <div style={s.encabezadoExito}>
-              <p style={s.tituloExito}>Acceso manual generado exitosamente</p>
-              <p style={s.subtituloExito}>
+          <div style={ESTILOS.panelExito}>
+            <div style={ESTILOS.encabezadoExito}>
+              <p style={ESTILOS.tituloExito}>Acceso manual generado exitosamente</p>
+              <p style={ESTILOS.subtituloExito}>
                 {resultado.razon_social} · {ETIQUETA_TIPO_CONTRAPARTE[resultado.tipo_contraparte] ?? resultado.tipo_contraparte}
               </p>
             </div>
 
-            <div style={s.cuerpoExito}>
-              <div style={s.advertenciaPIN}>
+            <div style={ESTILOS.cuerpoExito}>
+              <div style={ESTILOS.advertenciaPIN}>
                 <strong>Nota de seguridad:</strong> El PIN se muestra una sola vez. Anótelo o compártalo
                 de forma segura antes de cerrar esta pantalla. El sistema nunca lo vuelve a mostrar.
               </div>
 
-              <div style={s.credencial}>
-                <span style={s.credencialLabel}>Código de petición</span>
-                <span style={s.credencialValor}>{resultado.codigo_peticion}</span>
-              </div>
+              <ItemCredencial label="Código de petición" valor={resultado.codigo_peticion} />
+              <ItemCredencial label="PIN de acceso"       valor={resultado.pin} />
+              <ItemCredencial label="Destinatario"        valor={resultado.correo_destinatario} monospace={false} />
+              <ItemCredencial label="Válido hasta"        valor={formatearFechaLarga(resultado.expires_at)} monospace={false} />
 
-              <div style={s.credencial}>
-                <span style={s.credencialLabel}>PIN de acceso</span>
-                <span style={s.credencialValor}>{resultado.pin}</span>
-              </div>
-
-              <div style={s.credencial}>
-                <span style={s.credencialLabel}>Destinatario</span>
-                <span style={{ ...s.credencialValor, fontFamily: 'inherit', letterSpacing: 0 }}>
-                  {resultado.correo_destinatario}
-                </span>
-              </div>
-
-              <div style={s.credencial}>
-                <span style={s.credencialLabel}>Válido hasta</span>
-                <span style={{ ...s.credencialValor, fontFamily: 'inherit', letterSpacing: 0 }}>
-                  {formatearFechaLarga(resultado.expires_at)}
-                </span>
-              </div>
-
-              <div style={s.enlaceBox}>
-                <p style={s.enlaceLabel}>Enlace de diligenciamiento</p>
-                <p style={s.enlaceTexto}>{resultado.enlace_diligenciamiento}</p>
-                <button style={s.btnCopiar} onClick={handleCopiarEnlace} type="button">
+              <div style={ESTILOS.enlaceBox}>
+                <p style={ESTILOS.enlaceLabel}>Enlace de diligenciamiento</p>
+                <p style={ESTILOS.enlaceTexto}>{resultado.enlace_diligenciamiento}</p>
+                <button style={ESTILOS.btnCopiar} onClick={handleCopiarEnlace} type="button">
                   {copiado ? 'Copiado' : 'Copiar enlace'}
                 </button>
               </div>
 
               <button
-                style={s.btnPrincipal}
+                style={ESTILOS.btnPrincipal}
                 onClick={() => handleCambiarVista('listar')}
                 type="button"
               >
                 Ver todos los accesos
               </button>
-              <button style={s.btnNuevo} onClick={() => handleCambiarVista('crear')} type="button">
+              <button style={ESTILOS.btnNuevo} onClick={() => handleCambiarVista('crear')} type="button">
                 Crear otro acceso
               </button>
             </div>
@@ -521,130 +565,61 @@ export default function CrearAccesoManual() {
 
   // ── Vista: formulario de creación ─────────────────────────────────────────
   return (
-    <div style={s.pagina}>
-      <div style={s.contenedor}>
+    <div style={ESTILOS.pagina}>
+      <div style={ESTILOS.contenedor}>
         <EncabezadoConTabs vistaEfectiva={vistaEfectiva} onCambiarVista={handleCambiarVista} />
 
         <form onSubmit={handleSubmit} noValidate>
-          <div style={s.tarjeta}>
+          <div style={ESTILOS.tarjeta}>
 
-            {errorGlobal && <div style={s.errorGlobal}>{errorGlobal}</div>}
+            {errorGlobal && <div style={ESTILOS.errorGlobal}>{errorGlobal}</div>}
 
-            <div style={s.fila}>
-              <div style={s.campo}>
-                <label style={s.label} htmlFor="tipo_contraparte">
-                  Tipo de contraparte <span style={{ color: 'var(--error, #ef4444)' }}>*</span>
-                </label>
-                <select
-                  id="tipo_contraparte"
-                  value={formData.tipo_contraparte}
-                  onChange={e => handleChange('tipo_contraparte', e.target.value)}
-                  style={{
-                    ...s.select,
-                    ...(erroresCampo.tipo_contraparte ? s.inputError : {}),
-                  }}
-                  disabled={cargando}
-                >
-                  <option value="">Seleccionar…</option>
-                  {TIPOS_CONTRAPARTE.map(({ valor, etiqueta }) => (
-                    <option key={valor} value={valor}>{etiqueta}</option>
-                  ))}
-                </select>
-                {erroresCampo.tipo_contraparte && (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--error, #ef4444)', marginTop: '4px', display: 'block' }}>
-                    {erroresCampo.tipo_contraparte}
-                  </span>
-                )}
-              </div>
-
-              <div style={s.campo}>
-                <label style={s.label} htmlFor="area_responsable">
-                  Área responsable <span style={{ color: 'var(--error, #ef4444)' }}>*</span>
-                </label>
-                <select
-                  id="area_responsable"
-                  value={formData.area_responsable}
-                  onChange={e => handleChange('area_responsable', e.target.value)}
-                  style={{
-                    ...s.select,
-                    ...(erroresCampo.area_responsable ? s.inputError : {}),
-                  }}
-                  disabled={cargando}
-                >
-                  <option value="">Seleccionar…</option>
-                  {AREAS_RESPONSABLES.map(({ valor, etiqueta }) => (
-                    <option key={valor} value={valor}>{etiqueta}</option>
-                  ))}
-                </select>
-                {erroresCampo.area_responsable && (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--error, #ef4444)', marginTop: '4px', display: 'block' }}>
-                    {erroresCampo.area_responsable}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div style={s.campo}>
-              <label style={s.label} htmlFor="razon_social">
-                Razón social empresa <span style={{ color: 'var(--error, #ef4444)' }}>*</span>
-              </label>
-              <input
-                id="razon_social"
-                type="text"
-                placeholder="Nombre completo de la empresa"
-                value={formData.razon_social}
-                onChange={e => handleChange('razon_social', e.target.value)}
-                onFocus={() => setFocusField('razon_social')}
-                onBlur={() => setFocusField(null)}
-                style={estiloInput('razon_social')}
-                disabled={cargando}
+            <div style={ESTILOS.fila}>
+              <CampoSelect
+                id="tipo_contraparte" label="Tipo de contraparte"
+                value={formData.tipo_contraparte} onChange={handleChange}
+                options={TIPOS_CONTRAPARTE} error={erroresCampo.tipo_contraparte} disabled={cargando}
               />
-              {erroresCampo.razon_social && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--error, #ef4444)', marginTop: '4px', display: 'block' }}>
-                  {erroresCampo.razon_social}
-                </span>
-              )}
-            </div>
-
-            <div style={s.campo}>
-              <label style={s.label} htmlFor="correo_destinatario">
-                Correo destinatario <span style={{ color: 'var(--error, #ef4444)' }}>*</span>
-              </label>
-              <input
-                id="correo_destinatario"
-                type="email"
-                placeholder="contacto@empresa.com"
-                value={formData.correo_destinatario}
-                onChange={e => handleChange('correo_destinatario', e.target.value)}
-                onFocus={() => setFocusField('correo_destinatario')}
-                onBlur={() => setFocusField(null)}
-                style={estiloInput('correo_destinatario')}
-                disabled={cargando}
+              <CampoSelect
+                id="area_responsable" label="Área responsable"
+                value={formData.area_responsable} onChange={handleChange}
+                options={AREAS_RESPONSABLES} error={erroresCampo.area_responsable} disabled={cargando}
               />
-              {erroresCampo.correo_destinatario && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--error, #ef4444)', marginTop: '4px', display: 'block' }}>
-                  {erroresCampo.correo_destinatario}
-                </span>
-              )}
             </div>
 
-            <div style={s.fila}>
-              <div style={s.campo}>
-                <label style={s.label}>Código de petición</label>
+            <CampoInput
+              id="razon_social" label="Nombre o Razón social empresa"
+              placeholder="Nombre completo de la empresa"
+              value={formData.razon_social} onChange={handleChange}
+              onFocus={() => setCampoEnfocado('razon_social')} onBlur={() => setCampoEnfocado(null)}
+              style={estiloInput('razon_social')} error={erroresCampo.razon_social} disabled={cargando}
+            />
+
+            <CampoInput
+              id="correo_destinatario" label="Correo destinatario" type="email"
+              placeholder="contacto@empresa.com"
+              value={formData.correo_destinatario} onChange={handleChange}
+              onFocus={() => setCampoEnfocado('correo_destinatario')} onBlur={() => setCampoEnfocado(null)}
+              style={estiloInput('correo_destinatario')} error={erroresCampo.correo_destinatario} disabled={cargando}
+            />
+
+            <div style={ESTILOS.fila}>
+              <div style={ESTILOS.campo}>
+                <label style={ESTILOS.label}>Código de petición</label>
                 <input
                   type="text"
                   value="Se genera automáticamente"
                   readOnly
-                  style={{ ...s.input, ...s.inputReadonly }}
+                  style={{ ...ESTILOS.input, ...ESTILOS.inputReadonly }}
                 />
               </div>
-              <div style={s.campo}>
-                <label style={s.label}>PIN de acceso</label>
+              <div style={ESTILOS.campo}>
+                <label style={ESTILOS.label}>PIN de acceso</label>
                 <input
                   type="text"
                   value="Se genera automáticamente"
                   readOnly
-                  style={{ ...s.input, ...s.inputReadonly }}
+                  style={{ ...ESTILOS.input, ...ESTILOS.inputReadonly }}
                 />
               </div>
             </div>
@@ -654,7 +629,7 @@ export default function CrearAccesoManual() {
           <button
             type="submit"
             style={{
-              ...s.btnPrincipal,
+              ...ESTILOS.btnPrincipal,
               opacity: cargando ? 0.6 : 1,
               cursor: cargando ? 'not-allowed' : 'pointer',
             }}

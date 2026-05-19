@@ -1,16 +1,220 @@
 /**
  * ModalDevolucion — panel para devolver un formulario SAGRILAFT al remitente.
  *
- * El usuario del portal especifica qué debe corregirse o completarse.
+ * El usuario del portal especifica qué debe corregirse o completarse y puede
+ * seleccionar los campos específicos del formulario que requieren atención.
  * Al confirmar, el sistema cambia el estado a EN_CORRECCION y notifica
  * al destinatario registrado por correo electrónico.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { api } from '../../services/api';
+import { CATALOGO_CORRECCIONES } from '../../data/catalogoCorrecciones';
 
 const LONGITUD_MINIMA_ESPECIFICACIONES = 20;
 const LONGITUD_MAXIMA_ESPECIFICACIONES = 2000;
+
+// ── Sub-componente: selector de campos ────────────────────────────────────────
+
+const sSelector = {
+  contenedor: {
+    marginTop: '20px',
+  },
+  etiqueta: {
+    display:    'block',
+    fontSize:   '0.8rem',
+    fontWeight: '700',
+    color:      'var(--gray-700, #334155)',
+    marginBottom: '8px',
+    letterSpacing: '0.03em',
+  },
+  descripcion: {
+    fontSize:   '0.78rem',
+    color:      'var(--gray-500, #64748b)',
+    margin:     '0 0 12px',
+    lineHeight: 1.4,
+  },
+  grupo: {
+    marginBottom: '12px',
+    border:       '1px solid var(--gray-200, #e2e8f0)',
+    borderRadius: 'var(--radius-sm, 6px)',
+    overflow:     'hidden',
+  },
+  grupoTitulo: {
+    fontSize:     '0.75rem',
+    fontWeight:   '700',
+    color:        'var(--gray-600, #475569)',
+    background:   'var(--gray-50, #f8fafc)',
+    padding:      '7px 12px',
+    margin:       0,
+    borderBottom: '1px solid var(--gray-200, #e2e8f0)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  grupoBoton: {
+    display:       'flex',
+    alignItems:    'center',
+    justifyContent: 'space-between',
+    width:         '100%',
+    border:        'none',
+    cursor:        'pointer',
+    textAlign:     'left',
+  },
+  grupoMeta: {
+    display:    'flex',
+    alignItems: 'center',
+    gap:        '6px',
+    flexShrink: 0,
+  },
+  badgeSeleccionados: {
+    display:       'inline-flex',
+    alignItems:    'center',
+    justifyContent: 'center',
+    minWidth:      '18px',
+    height:        '18px',
+    padding:       '0 5px',
+    borderRadius:  '9px',
+    background:    '#ea580c',
+    color:         '#fff',
+    fontSize:      '0.7rem',
+    fontWeight:    '700',
+  },
+  chevron: {
+    display:    'inline-block',
+    transition: 'transform 0.2s',
+    fontSize:   '0.8rem',
+    color:      'var(--gray-400, #94a3b8)',
+  },
+  chevronAbierto: {
+    transform: 'rotate(90deg)',
+  },
+  camposLista: {
+    display:             'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap:                 '2px',
+    padding:             '8px',
+  },
+  campoItem: {
+    display:    'flex',
+    alignItems: 'center',
+    gap:        '6px',
+    padding:    '5px 8px',
+    borderRadius: '4px',
+    cursor:     'pointer',
+    userSelect: 'none',
+    transition: 'background 0.1s',
+  },
+  campoItemSeleccionado: {
+    background: '#fff7ed',
+  },
+  checkbox: {
+    width:  '14px',
+    height: '14px',
+    accentColor: '#ea580c',
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  campoLabel: {
+    fontSize: '0.8rem',
+    color:    'var(--gray-700, #334155)',
+    cursor:   'pointer',
+  },
+  contadorSeleccionados: {
+    fontSize:   '0.75rem',
+    color:      '#ea580c',
+    fontWeight: '600',
+    marginTop:  '6px',
+  },
+};
+
+function GrupoAcordeon({ grupo, seleccionados, onToggle }) {
+  const tieneCamposSeleccionados = grupo.campos.some(campo => seleccionados.has(campo.id));
+  const [abierto, setAbierto] = useState(tieneCamposSeleccionados);
+
+  const cantidadSeleccionados = useMemo(
+    () => grupo.campos.filter(campo => seleccionados.has(campo.id)).length,
+    [grupo.campos, seleccionados],
+  );
+
+  return (
+    <div style={sSelector.grupo}>
+      <button
+        type="button"
+        style={{ ...sSelector.grupoTitulo, ...sSelector.grupoBoton }}
+        onClick={() => setAbierto(v => !v)}
+        aria-expanded={abierto}
+      >
+        <span>Paso {grupo.paso} — {grupo.etiqueta}</span>
+        <span style={sSelector.grupoMeta}>
+          {cantidadSeleccionados > 0 && (
+            <span style={sSelector.badgeSeleccionados}>{cantidadSeleccionados}</span>
+          )}
+          <span style={{ ...sSelector.chevron, ...(abierto ? sSelector.chevronAbierto : {}) }}>▸</span>
+        </span>
+      </button>
+
+      {abierto && (
+        <div style={sSelector.camposLista}>
+          {grupo.campos.map(campo => {
+            const marcado = seleccionados.has(campo.id);
+            return (
+              <label
+                key={campo.id}
+                style={{ ...sSelector.campoItem, ...(marcado ? sSelector.campoItemSeleccionado : {}) }}
+              >
+                <input
+                  type="checkbox"
+                  style={sSelector.checkbox}
+                  checked={marcado}
+                  onChange={() => onToggle(campo.id)}
+                />
+                <span style={sSelector.campoLabel}>{campo.etiqueta}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SelectorCamposCorreccion({ seleccionados, onChange }) {
+  function toggleCampo(id) {
+    const nuevaSeleccion = new Set(seleccionados);
+    if (nuevaSeleccion.has(id)) {
+      nuevaSeleccion.delete(id);
+    } else {
+      nuevaSeleccion.add(id);
+    }
+    onChange(nuevaSeleccion);
+  }
+
+  const sufijo = seleccionados.size !== 1 ? 's' : '';
+
+  return (
+    <div style={sSelector.contenedor}>
+      <span style={sSelector.etiqueta}>Campos específicos que requieren corrección</span>
+      <p style={sSelector.descripcion}>
+        Opcional — selecciona los campos para que el destinatario los vea resaltados en el formulario.
+      </p>
+
+      {CATALOGO_CORRECCIONES.map(grupo => (
+        <GrupoAcordeon
+          key={grupo.paso}
+          grupo={grupo}
+          seleccionados={seleccionados}
+          onToggle={toggleCampo}
+        />
+      ))}
+
+      {seleccionados.size > 0 && (
+        <p style={sSelector.contadorSeleccionados}>
+          {seleccionados.size} campo{sufijo} seleccionado{sufijo}
+        </p>
+      )}
+    </div>
+  );
+}
 
 // ── Estilos ───────────────────────────────────────────────────────────────────
 
@@ -174,21 +378,27 @@ const s = {
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function ModalDevolucion({ visible, formularioId, onDevuelto, onCancelar }) {
-  const [especificaciones, setEspecificaciones] = useState('');
-  const [enfocado, setEnfocado]                 = useState(false);
-  const [enviando, setEnviando]                 = useState(false);
-  const [error, setError]                       = useState(null);
+  const [especificaciones, setEspecificaciones]     = useState('');
+  const [camposSeleccionados, setCamposSeleccionados] = useState(new Set());
+  const [enfocado, setEnfocado]                     = useState(false);
+  const [enviando, setEnviando]                     = useState(false);
+  const [error, setError]                           = useState(null);
+
+  function resetearEstado() {
+    setEspecificaciones('');
+    setCamposSeleccionados(new Set());
+    setError(null);
+  }
 
   function limpiarYCerrar() {
-    setEspecificaciones('');
-    setError(null);
+    resetearEstado();
     onCancelar();
   }
 
   function validarEspecificaciones() {
-    const longitud = especificaciones.trim().length;
-    if (longitud < LONGITUD_MINIMA_ESPECIFICACIONES) {
-      return `Mínimo ${LONGITUD_MINIMA_ESPECIFICACIONES} caracteres (actual: ${longitud}).`;
+    const longitudTexto = especificaciones.trim().length;
+    if (longitudTexto < LONGITUD_MINIMA_ESPECIFICACIONES) {
+      return `Mínimo ${LONGITUD_MINIMA_ESPECIFICACIONES} caracteres (actual: ${longitudTexto}).`;
     }
     return null;
   }
@@ -205,12 +415,13 @@ export default function ModalDevolucion({ visible, formularioId, onDevuelto, onC
 
     try {
       await api.devolverExpediente(formularioId, {
-        especificaciones: especificaciones.trim(),
+        especificaciones:    especificaciones.trim(),
+        campos_identificados: [...camposSeleccionados],
       });
-      setEspecificaciones('');
+      resetearEstado();
       onDevuelto();
-    } catch (err) {
-      setError(err.message || 'Error al procesar la devolución. Intente nuevamente.');
+    } catch (errorDevolucion) {
+      setError(errorDevolucion.message || 'Error al procesar la devolución. Intente nuevamente.');
     } finally {
       setEnviando(false);
     }
@@ -219,7 +430,7 @@ export default function ModalDevolucion({ visible, formularioId, onDevuelto, onC
   if (!visible) return null;
 
   const longitudActual   = especificaciones.trim().length;
-  const formularioValido = longitudActual >= LONGITUD_MINIMA_ESPECIFICACIONES;
+  const especificacionesValidas = longitudActual >= LONGITUD_MINIMA_ESPECIFICACIONES;
   const textoBoton       = enviando ? 'Enviando devolución…' : 'Confirmar devolución';
 
   return (
@@ -258,12 +469,18 @@ export default function ModalDevolucion({ visible, formularioId, onDevuelto, onC
           />
           <div style={s.contadorCaracteres}>
             <span>{longitudActual} / {LONGITUD_MAXIMA_ESPECIFICACIONES}</span>
-            {!formularioValido && longitudActual > 0 && (
+            {!especificacionesValidas && longitudActual > 0 && (
               <span style={s.avisoMinimo}>
                 Mínimo {LONGITUD_MINIMA_ESPECIFICACIONES} caracteres
               </span>
             )}
           </div>
+
+          {/* Selector de campos específicos */}
+          <SelectorCamposCorreccion
+            seleccionados={camposSeleccionados}
+            onChange={setCamposSeleccionados}
+          />
 
           {/* Vista previa del correo */}
           <div style={s.vistaPreviaContenedor}>
@@ -301,10 +518,10 @@ export default function ModalDevolucion({ visible, formularioId, onDevuelto, onC
           <button
             style={{
               ...s.btnConfirmar,
-              ...(!formularioValido || enviando ? s.btnDeshabilitado : {}),
+              ...(!especificacionesValidas || enviando ? s.btnDeshabilitado : {}),
             }}
             onClick={handleConfirmar}
-            disabled={!formularioValido || enviando}
+            disabled={!especificacionesValidas || enviando}
             type="button"
           >
             {textoBoton}
