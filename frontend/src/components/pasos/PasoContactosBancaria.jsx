@@ -3,7 +3,8 @@ import FormField from '../FormField';
 import { buildSelectStyles } from '../../utils/selectStyles';
 import { onlyNumericKeyDown, onlyNumericPaste } from '../../utils/inputValidation';
 import { LONGITUD_TELEFONO } from '../../utils/constantes';
-import { HR, SectionTitle, SubLabel, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, MensajeError } from '../TablaFormComponents';
+import { HR, SectionTitle, SubLabel, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, MensajeError, CeldaToggleProducto } from '../TablaFormComponents';
+import { useCorreccion } from '../../context/CorreccionContext';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,51 @@ const TIPOS_TRANSACCION = [
   { value: 'otras',          label: 'Otras'             },
 ];
 
+// ── Sub-componentes ───────────────────────────────────────────────────────────
+
+function BloqueCorreccion({ marcado, titulo, children }) {
+  return (
+    <div className={marcado ? 'bloque-correccion-pendiente' : ''}>
+      <SectionTitle>{titulo}</SectionTitle>
+      {marcado && (
+        <div className="correccion-aviso" style={{ marginBottom: '8px' }}>Esta sección requiere revisión</div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function FilaError({ mensaje }) {
+  if (!mensaje) return null;
+  return <div className="field-error" style={{ marginBottom: '8px' }}>{mensaje}</div>;
+}
+
+function CeldaTexto({ valor, placeholder, err, onChange, ...rest }) {
+  return (
+    <td>
+      <input
+        value={valor || ''} placeholder={placeholder}
+        onChange={e => onChange(e.target.value)}
+        style={err ? ESTILO_CELDA_ERROR : undefined}
+        {...rest}
+      />
+      <MensajeError msg={err} />
+    </td>
+  );
+}
+
+function CeldaEliminar({ mostrar, onClick, title }) {
+  if (!mostrar) return null;
+  return (
+    <td>
+      <button type="button" onClick={onClick} style={ESTILO_BTN_ELIMINAR} title={title}>×</button>
+    </td>
+  );
+}
+
+const clsGrupo = (pendiente, completado) =>
+  ['form-group', pendiente ? 'correccion-pendiente' : completado ? 'correccion-completada' : ''].filter(Boolean).join(' ');
+
 // ── Componente ────────────────────────────────────────────────────────────────
 
 /**
@@ -33,15 +79,26 @@ export default function PasoContactosBancaria({
 }) {
   const errFilasComerciales = errors.referencias_comerciales_filas ?? [];
   const errFilasBancarias   = errors.referencias_bancarias_filas   ?? [];
-  const realizaMoneda     = formData.realiza_operaciones_moneda_extranjera === 'si';
-  const tiposSeleccionados = formData.tipos_transaccion ?? [];
-  const muestraCuales     = tiposSeleccionados.includes('otras');
+  const realizaMoneda      = formData.realiza_operaciones_moneda_extranjera === 'si';
+  const tiposSeleccionados  = formData.tipos_transaccion ?? [];
+  const muestraCuales      = tiposSeleccionados.includes('otras');
 
   const handleMonedaChange = (option) => onMonedaChange(option?.value ?? '');
   const handleTiposChange  = (opciones) => onTiposChange(opciones.map(o => o.value));
 
-  const tiposValue = TIPOS_TRANSACCION.filter(o => tiposSeleccionados.includes(o.value));
+  const tiposValue  = TIPOS_TRANSACCION.filter(o => tiposSeleccionados.includes(o.value));
   const monedaValue = OPCIONES_MONEDA.find(o => o.value === formData.realiza_operaciones_moneda_extranjera) ?? null;
+
+  const { esCampoConCorreccion } = useCorreccion();
+  const refComercMarcada = esCampoConCorreccion('referencias_comerciales');
+  const refBancMarcada   = esCampoConCorreccion('referencias_bancarias');
+  const monedaMarcada    = esCampoConCorreccion('realiza_operaciones_moneda_extranjera');
+  const tiposTxMarcados  = esCampoConCorreccion('tipos_transaccion');
+
+  const monedaPendiente  = monedaMarcada && !monedaValue;
+  const monedaCompletada = monedaMarcada && !!monedaValue;
+  const tiposPendiente   = tiposTxMarcados && tiposValue.length === 0;
+  const tiposCompletado  = tiposTxMarcados && tiposValue.length > 0;
 
   return (
     <div className="form-card">
@@ -49,10 +106,8 @@ export default function PasoContactosBancaria({
       <p className="section-subtitle">Datos de contacto y referencias comerciales y bancarias</p>
 
       {/* ── REFERENCIAS COMERCIALES ─────────────────────────────────────────── */}
-      <SectionTitle>REFERENCIAS COMERCIALES</SectionTitle>
-      {errors.referencias_comerciales_tabla && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>{errors.referencias_comerciales_tabla}</div>
-      )}
+      <BloqueCorreccion marcado={refComercMarcada} titulo="REFERENCIAS COMERCIALES">
+      <FilaError mensaje={errors.referencias_comerciales_tabla} />
       <div className="data-table-container">
         <table className="data-table">
           <thead>
@@ -69,58 +124,33 @@ export default function PasoContactosBancaria({
               const err = errFilasComerciales[idx] ?? {};
               return (
                 <tr key={idx}>
-                  <td>
-                    <input
-                      value={ref.nombre_establecimiento || ''}
-                      placeholder="Nombre del establecimiento"
-                      onChange={(e) => onReferenciaChange(idx, 'nombre_establecimiento', e.target.value)}
-                      style={err.nombre_establecimiento ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.nombre_establecimiento} />
-                  </td>
-                  <td>
-                    <input
-                      value={ref.persona_contacto || ''}
-                      placeholder="Nombre completo"
-                      onChange={(e) => onReferenciaChange(idx, 'persona_contacto', e.target.value)}
-                      style={err.persona_contacto ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.persona_contacto} />
-                  </td>
-                  <td>
-                    <input
-                      value={ref.telefono || ''}
-                      placeholder="Teléfono"
-                      inputMode="numeric"
-                      maxLength={LONGITUD_TELEFONO}
-                      onKeyDown={onlyNumericKeyDown}
-                      onPaste={onlyNumericPaste}
-                      onChange={(e) => onReferenciaChange(idx, 'telefono', e.target.value)}
-                      style={err.telefono ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.telefono} />
-                  </td>
-                  <td>
-                    <input
-                      value={ref.ciudad || ''}
-                      placeholder="Ciudad"
-                      onChange={(e) => onReferenciaChange(idx, 'ciudad', e.target.value)}
-                      style={err.ciudad ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.ciudad} />
-                  </td>
-                  {referenciasComerciales.length > 1 && (
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => onEliminarReferencia(idx)}
-                        style={ESTILO_BTN_ELIMINAR}
-                        title="Aqui puedes eliminar referencia comercial"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  )}
+                  <CeldaTexto
+                    valor={ref.nombre_establecimiento} placeholder="Nombre del establecimiento"
+                    err={err.nombre_establecimiento}
+                    onChange={val => onReferenciaChange(idx, 'nombre_establecimiento', val)}
+                  />
+                  <CeldaTexto
+                    valor={ref.persona_contacto} placeholder="Nombre completo"
+                    err={err.persona_contacto}
+                    onChange={val => onReferenciaChange(idx, 'persona_contacto', val)}
+                  />
+                  <CeldaTexto
+                    valor={ref.telefono} placeholder="Teléfono"
+                    err={err.telefono}
+                    onChange={val => onReferenciaChange(idx, 'telefono', val)}
+                    inputMode="numeric" maxLength={LONGITUD_TELEFONO}
+                    onKeyDown={onlyNumericKeyDown} onPaste={onlyNumericPaste}
+                  />
+                  <CeldaTexto
+                    valor={ref.ciudad} placeholder="Ciudad"
+                    err={err.ciudad}
+                    onChange={val => onReferenciaChange(idx, 'ciudad', val)}
+                  />
+                  <CeldaEliminar
+                    mostrar={referenciasComerciales.length > 1}
+                    onClick={() => onEliminarReferencia(idx)}
+                    title="Aqui puedes eliminar referencia comercial"
+                  />
                 </tr>
               );
             })}
@@ -130,14 +160,13 @@ export default function PasoContactosBancaria({
       <button type="button" className="btn btn-sm btn-outline" onClick={onAddReferencia} required>
         + Agregar referencia
       </button>
+      </BloqueCorreccion>
 
       <HR />
 
       {/* ── REFERENCIAS BANCARIAS ───────────────────────────────────────────── */}
-      <SectionTitle>REFERENCIAS BANCARIAS</SectionTitle>
-      {errors.referencias_bancarias_tabla && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>{errors.referencias_bancarias_tabla}</div>
-      )}
+      <BloqueCorreccion marcado={refBancMarcada} titulo="REFERENCIAS BANCARIAS">
+      <FilaError mensaje={errors.referencias_bancarias_tabla} />
       <div className="data-table-container">
         <table className="data-table">
           <thead>
@@ -152,36 +181,21 @@ export default function PasoContactosBancaria({
               const err = errFilasBancarias[idx] ?? {};
               return (
                 <tr key={idx}>
-                  <td>
-                    <input
-                      value={ref.entidad || ''}
-                      placeholder="Nombre de la entidad"
-                      onChange={(e) => onReferenciaBancariaChange(idx, 'entidad', e.target.value)}
-                      style={err.entidad ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.entidad} />
-                  </td>
-                  <td>
-                    <input
-                      value={ref.producto || ''}
-                      placeholder="Ej: Cuenta corriente, CDT"
-                      onChange={(e) => onReferenciaBancariaChange(idx, 'producto', e.target.value)}
-                      style={err.producto ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.producto} />
-                  </td>
-                  {referenciasBancarias.length > 1 && (
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => onEliminarReferenciaBancaria(idx)}
-                        style={ESTILO_BTN_ELIMINAR}
-                        title="Aqui puedes eliminar referencia bancaria"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  )}
+                  <CeldaTexto
+                    valor={ref.entidad} placeholder="Nombre de la entidad"
+                    err={err.entidad}
+                    onChange={val => onReferenciaBancariaChange(idx, 'entidad', val)}
+                  />
+                  <CeldaToggleProducto
+                    valor={ref.producto}
+                    err={err.producto}
+                    onChange={val => onReferenciaBancariaChange(idx, 'producto', val)}
+                  />
+                  <CeldaEliminar
+                    mostrar={referenciasBancarias.length > 1}
+                    onClick={() => onEliminarReferenciaBancaria(idx)}
+                    title="Aqui puedes eliminar referencia bancaria"
+                  />
                 </tr>
               );
             })}
@@ -191,12 +205,18 @@ export default function PasoContactosBancaria({
       <button type="button" className="btn btn-sm btn-outline" onClick={onAddReferenciaBancaria}>
         + Agregar referencia bancaria
       </button>
+      </BloqueCorreccion>
 
       {/* ── Operaciones en Moneda Extranjera ────────────────────────────────── */}
       <div style={{ marginTop: '20px' }}>
-        <div className="form-group" style={{ maxWidth: '320px' }}>
+        <div
+          className={clsGrupo(monedaPendiente, monedaCompletada)}
+          style={{ maxWidth: '320px' }}
+        >
           <label className="form-label">
             ¿Realiza Operaciones en Moneda Extranjera? <span style={{ color: 'var(--error, #e53e3e)' }}>*</span>
+            {monedaPendiente  && <span className="correccion-mark"    title="Este campo requiere corrección" aria-label="Requiere corrección">✎</span>}
+            {monedaCompletada && <span className="correccion-ok-mark" title="Corrección completada"          aria-label="Corregido">✓</span>}
           </label>
           <Select
             inputId="realiza_operaciones_moneda_extranjera"
@@ -206,9 +226,11 @@ export default function PasoContactosBancaria({
             isClearable
             placeholder="Seleccione..."
             noOptionsMessage={() => 'Sin opciones'}
-            styles={buildSelectStyles(!!errors.realiza_operaciones_moneda_extranjera, !!monedaValue)}
+            styles={buildSelectStyles(!!errors.realiza_operaciones_moneda_extranjera, !!monedaValue, monedaPendiente)}
           />
           <MensajeError msg={errors.realiza_operaciones_moneda_extranjera} />
+          {monedaPendiente  && !errors.realiza_operaciones_moneda_extranjera && <div className="correccion-aviso">Este campo requiere corrección</div>}
+          {monedaCompletada && <div className="correccion-aviso correccion-aviso--ok">Corrección completada</div>}
         </div>
 
         {realizaMoneda && (
@@ -223,9 +245,14 @@ export default function PasoContactosBancaria({
               />
             </div>
 
-            <div className="form-group" style={{ marginTop: '12px' }}>
+            <div
+              className={clsGrupo(tiposPendiente, tiposCompletado)}
+              style={{ marginTop: '12px' }}
+            >
               <SubLabel>
                 Si su actividad implica transacciones en moneda extranjera, señale los tipos de transacción:
+                {tiposPendiente  && <span className="correccion-mark"    title="Este campo requiere corrección" aria-label="Requiere corrección">✎</span>}
+                {tiposCompletado && <span className="correccion-ok-mark" title="Corrección completada"          aria-label="Corregido">✓</span>}
               </SubLabel>
               <Select
                 inputId="tipos_transaccion"
@@ -235,8 +262,10 @@ export default function PasoContactosBancaria({
                 options={TIPOS_TRANSACCION}
                 placeholder="Seleccione uno o más tipos..."
                 noOptionsMessage={() => 'Sin opciones'}
-                styles={buildSelectStyles(false, tiposValue.length > 0)}
+                styles={buildSelectStyles(false, tiposValue.length > 0, tiposPendiente)}
               />
+              {tiposPendiente  && <div className="correccion-aviso">Este campo requiere corrección</div>}
+              {tiposCompletado && <div className="correccion-aviso correccion-aviso--ok">Corrección completada</div>}
             </div>
 
             {muestraCuales && (

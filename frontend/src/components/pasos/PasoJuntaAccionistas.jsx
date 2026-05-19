@@ -9,7 +9,8 @@ import {
   UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL,
   PORCENTAJE_MAXIMO_PERMITIDO,
 } from '../../utils/constantes';
-import { HR, SectionTitle, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, CeldaPEP, CeldaIdentificacion } from '../TablaFormComponents';
+import { HR, SectionTitle, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, CeldaPEP, CeldaIdentificacion, MensajeError } from '../TablaFormComponents';
+import { useCorreccion } from '../../context/CorreccionContext';
 
 const TIPOS_ID_JUNTA = [
   { value: 'CC',  label: 'CC'  },
@@ -24,6 +25,44 @@ const TIPOS_ID_ACCIONISTA = [
   { value: 'PAS', label: 'PAS' },
 ];
 
+// ── Sub-componentes ───────────────────────────────────────────────────────────
+
+function FilaError({ mensaje }) {
+  if (!mensaje) return null;
+  return <div className="field-error" style={{ marginBottom: '8px' }}>{mensaje}</div>;
+}
+
+function BloqueCorreccion({ marcado, titulo, children }) {
+  return (
+    <div className={marcado ? 'bloque-correccion-pendiente' : ''}>
+      <SectionTitle bold>{titulo}</SectionTitle>
+      {marcado && (
+        <div className="correccion-aviso" style={{ marginBottom: '8px' }}>
+          Esta sección requiere revisión
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function CeldaPorcentaje({ valor, minimo, err, onChange }) {
+  return (
+    <td>
+      <input
+        type="number" step="0.01"
+        min={minimo + 0.01}
+        max={PORCENTAJE_MAXIMO_PERMITIDO - 0.01}
+        value={valor || ''} placeholder="%"
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={onPorcentajeKeyDown} onPaste={onPorcentajePaste}
+        style={err ? ESTILO_CELDA_ERROR : undefined}
+      />
+      <MensajeError msg={err} />
+    </td>
+  );
+}
+
 /**
  * Paso 4 — Junta Directiva y Composición Accionaria.
  * Solo aplica a Persona Jurídica; muestra mensaje alternativo para Natural.
@@ -36,8 +75,13 @@ export default function PasoJuntaAccionistas({
   beneficiarios, onBeneficiarioChange, onBeneficiarioTipoIdChange, onAddBeneficiario, onEliminarBeneficiario,
 }) {
   const erroresFilasJunta = errors.junta_directiva_filas ?? [];
-  const erroresFilasAcc   = errors.accionistas_filas     ?? [];
-  const erroresFilasBen   = errors.beneficiarios_filas   ?? [];
+  const erroresFilasAccionistas   = errors.accionistas_filas     ?? [];
+  const erroresFilasBeneficiarios = errors.beneficiarios_filas ?? [];
+
+  const { esCampoConCorreccion } = useCorreccion();
+  const juntaMarcada       = esCampoConCorreccion('junta_directiva');
+  const accionistasMarcados = esCampoConCorreccion('accionistas');
+  const beneficiariosMarcados = esCampoConCorreccion('beneficiario_final');
 
   if (formData.tipo_persona === 'natural') {
     return (
@@ -56,14 +100,12 @@ export default function PasoJuntaAccionistas({
       <p className="section-subtitle">Para responder las preguntas respecto a PEP´s, tenga en cuenta que corresponden a personas expuestas políticamente o públicamente que: Manejan recursos públicos, tienen algún grado de poder público o gozan dereconocimiento público.</p>
 
       {/* ── Junta Directiva ─────────────────────────────────────────────────── */}
-      <SectionTitle bold>Junta Directiva y Representantes</SectionTitle>
+      <BloqueCorreccion marcado={juntaMarcada} titulo="Junta Directiva y Representantes">
       <div className="info-box">
         <p> PEP: Persona Expuesta Políticamente — persona que maneja recursos públicos, tiene poder público o reconocimiento público.</p>
         <p> ¿Vínculos con PEP? Si es asi, describa, de lo contrario colocar No.</p>
       </div>
-      {errors.junta_directiva_tabla && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>{errors.junta_directiva_tabla}</div>
-      )}
+      <FilaError mensaje={errors.junta_directiva_tabla} />
       <div className="data-table-container">
         <table className="data-table">
           <thead>
@@ -75,14 +117,14 @@ export default function PasoJuntaAccionistas({
           </thead>
           <tbody>
             {juntaDirectiva.map((miembro, idx) => {
-              const err = erroresFilasJunta[idx] ?? {};
+              const erroresFila = erroresFilasJunta[idx] ?? {};
               return (
                 <tr key={idx}>
                   <td>
                     <select
                       value={miembro.cargo || ''}
                       onChange={(e) => onJuntaChange(idx, 'cargo', e.target.value)}
-                      style={err.cargo ? ESTILO_CELDA_ERROR : undefined}
+                      style={erroresFila.cargo ? ESTILO_CELDA_ERROR : undefined}
                     >
                       <option value="">Seleccione...</option>
                       {CARGOS_JUNTA_DIRECTIVA.map(cargo => <option key={cargo} value={cargo}>{cargo}</option>)}
@@ -93,15 +135,15 @@ export default function PasoJuntaAccionistas({
                       value={miembro.nombre || ''} placeholder="Nombre completo"
                       onChange={(e) => onJuntaChange(idx, 'nombre', e.target.value)}
                       onKeyDown={onlyTextKeyDown} onPaste={onlyTextPaste}
-                      style={err.nombre ? ESTILO_CELDA_ERROR : undefined}
+                      style={erroresFila.nombre ? ESTILO_CELDA_ERROR : undefined}
                     />
                   </td>
                   <CeldaIdentificacion
-                    item={miembro} err={err} tiposId={TIPOS_ID_JUNTA}
+                    item={miembro} err={erroresFila} tiposId={TIPOS_ID_JUNTA}
                     onTipoChange={(tipo) => onJuntaTipoIdChange(idx, tipo)}
                     onNumeroChange={(val) => onJuntaChange(idx, 'numero_id', val)}
                   />
-                  <CeldaPEP item={miembro} err={err} onChange={(campo, val) => onJuntaChange(idx, campo, val)} />
+                  <CeldaPEP item={miembro} err={erroresFila} onChange={(campo, val) => onJuntaChange(idx, campo, val)} />
                   {juntaDirectiva.length > 1 && (
                     <td>
                       <button type="button" onClick={() => onEliminarJuntaMember(idx)} style={ESTILO_BTN_ELIMINAR} title="Eliminar miembro">×</button>
@@ -116,21 +158,18 @@ export default function PasoJuntaAccionistas({
       <button type="button" className="btn btn-sm btn-outline" onClick={onAddJuntaMember}>
         + Agregar miembro
       </button>
+      </BloqueCorreccion>
 
       <HR />
 
       {/* ── Composición Accionaria ───────────────────────────────────────────── */}
-      <SectionTitle bold>Composición Accionaria</SectionTitle>
+      <BloqueCorreccion marcado={accionistasMarcados} titulo="Composición Accionaria">
       <div className="info-box">
         <p>Registrar todos los accionistas o asociados que tengan directa o indirectamente mas del {UMBRAL_MINIMO_PARTICIPACION_ACCIONISTA}% de su capital social, aporte o participación.</p>
         <p>  ¿Vínculos con PEP? Si es asi, describa, de lo contrario colocar No.</p>
       </div>
-      {errors.accionistas_tabla && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>{errors.accionistas_tabla}</div>
-      )}
-      {errors.accionistas_suma && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>{errors.accionistas_suma}</div>
-      )}
+      <FilaError mensaje={errors.accionistas_tabla} />
+      <FilaError mensaje={errors.accionistas_suma} />
       <div className="data-table-container">
         <table className="data-table">
           <thead>
@@ -141,38 +180,30 @@ export default function PasoJuntaAccionistas({
             </tr>
           </thead>
           <tbody>
-            {accionistas.map((acc, idx) => {
-              const err = erroresFilasAcc[idx] ?? {};
+            {accionistas.map((accionista, idx) => {
+              const erroresFila = erroresFilasAccionistas[idx] ?? {};
               return (
                 <tr key={idx}>
                   <td>
                     <input
-                      value={acc.nombre || ''} placeholder="Nombre"
+                      value={accionista.nombre || ''} placeholder="Nombre"
                       onChange={(e) => onAccionistaChange(idx, 'nombre', e.target.value)}
                       onKeyDown={onlyAlphanumericKeyDown} onPaste={onlyAlphanumericPaste}
-                      style={err.nombre ? ESTILO_CELDA_ERROR : undefined}
+                      style={erroresFila.nombre ? ESTILO_CELDA_ERROR : undefined}
                     />
                   </td>
-                  <td>
-                    <input
-                      type="number" step="0.01"
-                      min={UMBRAL_MINIMO_PARTICIPACION_ACCIONISTA + 0.01}
-                      max={PORCENTAJE_MAXIMO_PERMITIDO - 0.01}
-                      value={acc.porcentaje || ''} placeholder="%"
-                      onChange={(e) => onAccionistaChange(idx, 'porcentaje', e.target.value)}
-                      onKeyDown={onPorcentajeKeyDown} onPaste={onPorcentajePaste}
-                      style={err.porcentaje ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    {err.porcentaje && (
-                      <span style={{ color: 'var(--error, #e53e3e)', fontSize: '0.75rem', display: 'block' }}>{err.porcentaje}</span>
-                    )}
-                  </td>
+                  <CeldaPorcentaje
+                    valor={accionista.porcentaje}
+                    minimo={UMBRAL_MINIMO_PARTICIPACION_ACCIONISTA}
+                    err={erroresFila.porcentaje}
+                    onChange={val => onAccionistaChange(idx, 'porcentaje', val)}
+                  />
                   <CeldaIdentificacion
-                    item={acc} err={err} tiposId={TIPOS_ID_ACCIONISTA}
+                    item={accionista} err={erroresFila} tiposId={TIPOS_ID_ACCIONISTA}
                     onTipoChange={(tipo) => onAccionistaTipoIdChange(idx, tipo)}
                     onNumeroChange={(val) => onAccionistaChange(idx, 'numero_id', val)}
                   />
-                  <CeldaPEP item={acc} err={err} onChange={(campo, val) => onAccionistaChange(idx, campo, val)} />
+                  <CeldaPEP item={accionista} err={erroresFila} onChange={(campo, val) => onAccionistaChange(idx, campo, val)} />
                   {accionistas.length > 1 && (
                     <td>
                       <button type="button" onClick={() => onEliminarAccionista(idx)} style={ESTILO_BTN_ELIMINAR} title="Eliminar accionista">×</button>
@@ -187,20 +218,17 @@ export default function PasoJuntaAccionistas({
       <button type="button" className="btn btn-sm btn-outline" onClick={onAddAccionista}>
         + Agregar accionista
       </button>
+      </BloqueCorreccion>
 
       <HR />
 
       {/* ── Beneficiario Final ───────────────────────────────────────────────── */}
-      <SectionTitle bold>Beneficiario Final</SectionTitle>
+      <BloqueCorreccion marcado={beneficiariosMarcados} titulo="Beneficiario Final">
       <div className="info-box">
         <p>En caso de que los socios sean personas jurídicas, describa la(s) persona(s) natural(es) que ejercen el control efectivo directo o indirecto sobre los socios persona(s) jurídica(s), o que sea titular del <strong>{UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL}% o más del capital</strong> de los socios.</p>
       </div>
-      {errors.beneficiarios_tabla && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>{errors.beneficiarios_tabla}</div>
-      )}
-      {errors.beneficiarios_suma && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>{errors.beneficiarios_suma}</div>
-      )}
+      <FilaError mensaje={errors.beneficiarios_tabla} />
+      <FilaError mensaje={errors.beneficiarios_suma} />
       <div className="data-table-container">
         <table className="data-table">
           <thead>
@@ -211,38 +239,30 @@ export default function PasoJuntaAccionistas({
             </tr>
           </thead>
           <tbody>
-            {beneficiarios.map((ben, idx) => {
-              const err = erroresFilasBen[idx] ?? {};
+            {beneficiarios.map((beneficiario, idx) => {
+              const erroresFila = erroresFilasBeneficiarios[idx] ?? {};
               return (
                 <tr key={idx}>
                   <td>
                     <input
-                      value={ben.nombre || ''} placeholder="Nombre"
+                      value={beneficiario.nombre || ''} placeholder="Nombre"
                       onChange={(e) => onBeneficiarioChange(idx, 'nombre', e.target.value)}
                       onKeyDown={onlyAlphanumericKeyDown} onPaste={onlyAlphanumericPaste}
-                      style={err.nombre ? ESTILO_CELDA_ERROR : undefined}
+                      style={erroresFila.nombre ? ESTILO_CELDA_ERROR : undefined}
                     />
                   </td>
-                  <td>
-                    <input
-                      type="number" step="0.01"
-                      min={UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL + 0.01}
-                      max={PORCENTAJE_MAXIMO_PERMITIDO - 0.01}
-                      value={ben.porcentaje || ''} placeholder="%"
-                      onChange={(e) => onBeneficiarioChange(idx, 'porcentaje', e.target.value)}
-                      onKeyDown={onPorcentajeKeyDown} onPaste={onPorcentajePaste}
-                      style={err.porcentaje ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    {err.porcentaje && (
-                      <span style={{ color: 'var(--error, #e53e3e)', fontSize: '0.75rem', display: 'block' }}>{err.porcentaje}</span>
-                    )}
-                  </td>
+                  <CeldaPorcentaje
+                    valor={beneficiario.porcentaje}
+                    minimo={UMBRAL_MINIMO_CONTROL_BENEFICIARIO_FINAL}
+                    err={erroresFila.porcentaje}
+                    onChange={val => onBeneficiarioChange(idx, 'porcentaje', val)}
+                  />
                   <CeldaIdentificacion
-                    item={ben} err={err} tiposId={TIPOS_ID_JUNTA}
+                    item={beneficiario} err={erroresFila} tiposId={TIPOS_ID_JUNTA}
                     onTipoChange={(tipo) => onBeneficiarioTipoIdChange(idx, tipo)}
                     onNumeroChange={(val) => onBeneficiarioChange(idx, 'numero_id', val)}
                   />
-                  <CeldaPEP item={ben} err={err} onChange={(campo, val) => onBeneficiarioChange(idx, campo, val)} />
+                  <CeldaPEP item={beneficiario} err={erroresFila} onChange={(campo, val) => onBeneficiarioChange(idx, campo, val)} />
                   {beneficiarios.length > 1 && (
                     <td>
                       <button type="button" onClick={() => onEliminarBeneficiario(idx)} style={ESTILO_BTN_ELIMINAR} title="Eliminar beneficiario">×</button>
@@ -257,6 +277,7 @@ export default function PasoJuntaAccionistas({
       <button type="button" className="btn btn-sm btn-outline" onClick={onAddBeneficiario}>
         + Agregar beneficiario
       </button>
+      </BloqueCorreccion>
     </div>
   );
 }

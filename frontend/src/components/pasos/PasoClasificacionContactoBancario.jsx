@@ -15,6 +15,7 @@ import ContactGroup from '../ContactGroup';
 import { HR, SectionTitle, ESTILO_CELDA_ERROR, ESTILO_BTN_ELIMINAR, MensajeError } from '../TablaFormComponents';
 import { onlyNumericKeyDown, onlyNumericPaste } from '../../utils/inputValidation';
 import { SECTORES_EMPRESA } from '../../utils/constantes';
+import { useCorreccion } from '../../context/CorreccionContext';
 
 
 // ── Constantes de dominio ──────────────────────────────────────────────────────
@@ -69,6 +70,64 @@ const TIPOS_CUENTA = [
   { value: 'fiducia',   label: 'Fiducia'             },
 ];
 
+// ── Primitivos de celda de tabla ──────────────────────────────────────────────
+
+function BloqueCorreccion({ marcado, titulo, children }) {
+  return (
+    <div className={marcado ? 'bloque-correccion-pendiente' : ''}>
+      <SectionTitle>{titulo}</SectionTitle>
+      {marcado && (
+        <div className="correccion-aviso" style={{ marginBottom: '8px' }}>Esta sección requiere revisión</div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function FilaError({ mensaje }) {
+  if (!mensaje) return null;
+  return <div className="field-error" style={{ marginBottom: '8px' }}>{mensaje}</div>;
+}
+
+function CeldaTexto({ valor, placeholder, err, onChange, ...rest }) {
+  return (
+    <td>
+      <input
+        value={valor || ''} placeholder={placeholder}
+        onChange={e => onChange(e.target.value)}
+        style={err ? ESTILO_CELDA_ERROR : undefined}
+        {...rest}
+      />
+      <MensajeError msg={err} />
+    </td>
+  );
+}
+
+function CeldaSelect({ valor, opciones, err, onChange }) {
+  return (
+    <td>
+      <select
+        value={valor || ''}
+        onChange={e => onChange(e.target.value)}
+        style={err ? ESTILO_CELDA_ERROR : undefined}
+      >
+        <option value="">Seleccione...</option>
+        {opciones.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+      </select>
+      <MensajeError msg={err} />
+    </td>
+  );
+}
+
+function CeldaEliminar({ mostrar, onClick, title }) {
+  if (!mostrar) return null;
+  return (
+    <td>
+      <button type="button" onClick={onClick} style={ESTILO_BTN_ELIMINAR} title={title}>×</button>
+    </td>
+  );
+}
+
 // ── Sub-secciones (SRP por sección) ───────────────────────────────────────────
 
 /**
@@ -78,89 +137,47 @@ const TIPOS_CUENTA = [
 function ClasificacionTributaria({ formData, onChange, onActividadChange, onOpenHelp, errors }) {
   const actividad = formData.actividad_clasificacion;
   const esOtraActividad = actividad === 'otra';
+  const fieldProps = (name) => ({ name, value: formData[name], onChange, onOpenHelp, error: errors[name] });
 
   return (
     <>
       <SectionTitle>8. CLASIFICACIÓN DE LA EMPRESA Y RÉGIMEN TRIBUTARIO</SectionTitle>
-      
+
       <div className="form-row">
-        <FormField
-          label="Actividad" name="actividad_clasificacion" type="select" required
-          value={actividad} onChange={onActividadChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_ACTIVIDAD} error={errors.actividad_clasificacion}
-        />
-        <FormField
-          label="¿Cuál? Especifique" name="actividad_especifica" required
-          value={formData.actividad_especifica} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.actividad_especifica}
-          disabled={!esOtraActividad}
-        />
-        <FormField
-          label="Sector" name="sector" type="select" required
-          value={formData.sector} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={SECTORES_EMPRESA} error={errors.sector}
-        />
-        <FormField
-          label="Vigilado por la superintendencia de" name="superintendencia" required
-          value={formData.superintendencia} onChange={onChange} onOpenHelp={onOpenHelp}
-          error={errors.superintendencia}
-        />
+        <FormField label="Actividad" type="select" required options={OPCIONES_ACTIVIDAD}
+          {...fieldProps('actividad_clasificacion')} onChange={onActividadChange} />
+        <FormField label="¿Cuál? Especifique" required disabled={!esOtraActividad}
+          {...fieldProps('actividad_especifica')} />
+        <FormField label="Sector" type="select" required options={SECTORES_EMPRESA}
+          {...fieldProps('sector')} />
+        <FormField label="Vigilado por la superintendencia de" required
+          {...fieldProps('superintendencia')} />
       </div>
 
       <div className="form-row">
-        <FormField
-          label="Responsabilidades impuesto sobre la renta" name="responsabilidades_renta" type="select" required
-          value={formData.responsabilidades_renta} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={RESPONSABILIDADES_RENTA} error={errors.responsabilidades_renta}
-        />
-        <FormField
-          label="Autorretenedor" name="autorretenedor" type="select" required
-          value={formData.autorretenedor} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_SI_NO} error={errors.autorretenedor}
-        />
-        <FormField
-          label="Responsabilidades en el impuesto sobre las ventas (IVA)" name="responsabilidades_iva" type="select" required
-          value={formData.responsabilidades_iva} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={RESPONSABILIDADES_IVA} error={errors.responsabilidades_iva}
-        />
-        <FormField
-          label="Régimen IVA" name="regimen_iva" type="select" required
-          value={formData.regimen_iva} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={REGIMENES_IVA} error={errors.regimen_iva}
-        />
-        <FormField
-          label="¿Es Gran Contribuyente?" name="gran_contribuyente" type="select" required
-          value={formData.gran_contribuyente} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_SI_NO} error={errors.gran_contribuyente}
-        />
+        <FormField label="Responsabilidades impuesto sobre la renta" type="select" required
+          options={RESPONSABILIDADES_RENTA} {...fieldProps('responsabilidades_renta')} />
+        <FormField label="Autorretenedor" type="select" required
+          options={OPCIONES_SI_NO} {...fieldProps('autorretenedor')} />
+        <FormField label="Responsabilidades en el impuesto sobre las ventas (IVA)" type="select" required
+          options={RESPONSABILIDADES_IVA} {...fieldProps('responsabilidades_iva')} />
+        <FormField label="Régimen IVA" type="select" required
+          options={REGIMENES_IVA} {...fieldProps('regimen_iva')} />
+        <FormField label="¿Es Gran Contribuyente?" type="select" required
+          options={OPCIONES_SI_NO} {...fieldProps('gran_contribuyente')} />
       </div>
 
       <div className="form-row">
-        <FormField
-          label="Entidad sin Ánimo de Lucro" name="entidad_sin_animo_lucro" type="select" required
-          value={formData.entidad_sin_animo_lucro} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_SI_NO} error={errors.entidad_sin_animo_lucro}
-        />
-        <FormField
-          label="Retención de Industria y Comercio" name="retencion_ica" type="select" required
-          value={formData.retencion_ica} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_SI_NO} error={errors.retencion_ica}
-        />
-        <FormField
-          label="Impuesto de Industria y Comercio" name="impuesto_ica" type="select" required
-          value={formData.impuesto_ica} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_SI_NO} error={errors.impuesto_ica}
-        />
-        <FormField
-          label="Entidad Oficial" name="entidad_oficial" type="select" required
-          value={formData.entidad_oficial} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_SI_NO} error={errors.entidad_oficial}
-        />
-        <FormField
-          label="Exento de Retención en la Fuente" name="exento_retencion_fuente" type="select" required
-          value={formData.exento_retencion_fuente} onChange={onChange} onOpenHelp={onOpenHelp}
-          options={OPCIONES_SI_NO} error={errors.exento_retencion_fuente}
-        />
+        <FormField label="Entidad sin Ánimo de Lucro" type="select" required
+          options={OPCIONES_SI_NO} {...fieldProps('entidad_sin_animo_lucro')} />
+        <FormField label="Retención de Industria y Comercio" type="select" required
+          options={OPCIONES_SI_NO} {...fieldProps('retencion_ica')} />
+        <FormField label="Impuesto de Industria y Comercio" type="select" required
+          options={OPCIONES_SI_NO} {...fieldProps('impuesto_ica')} />
+        <FormField label="Entidad Oficial" type="select" required
+          options={OPCIONES_SI_NO} {...fieldProps('entidad_oficial')} />
+        <FormField label="Exento de Retención en la Fuente" type="select" required
+          options={OPCIONES_SI_NO} {...fieldProps('exento_retencion_fuente')} />
       </div>
 
       <HR />
@@ -195,15 +212,12 @@ function ContactoAutorizado({ formData, onChange, onOpenHelp, errors }) {
  */
 function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAddInfoBancariaPagos, onEliminarInfoBancariaPagos, errors }) {
   const errFilas = errors.info_bancaria_pagos_filas ?? [];
+  const { esCampoConCorreccion } = useCorreccion();
+  const marcada = esCampoConCorreccion('informacion_bancaria_pagos');
 
   return (
-    <>
-      <SectionTitle>10. INFORMACIÓN BANCARIA PARA PAGOS</SectionTitle>
-      {errors.info_bancaria_pagos_tabla && (
-        <div className="field-error" style={{ marginBottom: '8px' }}>
-          {errors.info_bancaria_pagos_tabla}
-        </div>
-      )}
+    <BloqueCorreccion marcado={marcada} titulo="10. INFORMACIÓN BANCARIA PARA PAGOS">
+      <FilaError mensaje={errors.info_bancaria_pagos_tabla} />
       <div className="data-table-container">
         <table className="data-table">
           <thead>
@@ -220,61 +234,33 @@ function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAdd
               const err = errFilas[idx] ?? {};
               return (
                 <tr key={idx}>
-                  <td>
-                    <input
-                      value={fila.entidad_bancaria || ''}
-                      placeholder="Nombre de la entidad"
-                      onChange={(e) => onInfoBancariaPagosChange(idx, 'entidad_bancaria', e.target.value)}
-                      style={err.entidad_bancaria ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.entidad_bancaria} />
-                  </td>
-                  <td>
-                    <input
-                      value={fila.ciudad_oficina || ''}
-                      placeholder="Ciudad / Oficina"
-                      onChange={(e) => onInfoBancariaPagosChange(idx, 'ciudad_oficina', e.target.value)}
-                      style={err.ciudad_oficina ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.ciudad_oficina} />
-                  </td>
-                  <td>
-                    <select
-                      value={fila.tipo_cuenta || ''}
-                      onChange={(e) => onInfoBancariaPagosChange(idx, 'tipo_cuenta', e.target.value)}
-                      style={err.tipo_cuenta ? ESTILO_CELDA_ERROR : undefined}
-                    >
-                      <option value="">Seleccione...</option>
-                      {TIPOS_CUENTA.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    <MensajeError msg={err.tipo_cuenta} />
-                  </td>
-                  <td>
-                    <input
-                      value={fila.numero_cuenta || ''}
-                      placeholder="Número de cuenta"
-                      inputMode="numeric"
-                      onKeyDown={onlyNumericKeyDown}
-                      onPaste={onlyNumericPaste}
-                      onChange={(e) => onInfoBancariaPagosChange(idx, 'numero_cuenta', e.target.value)}
-                      style={err.numero_cuenta ? ESTILO_CELDA_ERROR : undefined}
-                    />
-                    <MensajeError msg={err.numero_cuenta} />
-                  </td>
-                  {infoBancariaPagos.length > 1 && (
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => onEliminarInfoBancariaPagos(idx)}
-                        style={ESTILO_BTN_ELIMINAR}
-                        title="Eliminar cuenta"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  )}
+                  <CeldaTexto
+                    valor={fila.entidad_bancaria} placeholder="Nombre de la entidad"
+                    err={err.entidad_bancaria}
+                    onChange={val => onInfoBancariaPagosChange(idx, 'entidad_bancaria', val)}
+                  />
+                  <CeldaTexto
+                    valor={fila.ciudad_oficina} placeholder="Ciudad / Oficina"
+                    err={err.ciudad_oficina}
+                    onChange={val => onInfoBancariaPagosChange(idx, 'ciudad_oficina', val)}
+                  />
+                  <CeldaSelect
+                    valor={fila.tipo_cuenta} opciones={TIPOS_CUENTA}
+                    err={err.tipo_cuenta}
+                    onChange={val => onInfoBancariaPagosChange(idx, 'tipo_cuenta', val)}
+                  />
+                  <CeldaTexto
+                    valor={fila.numero_cuenta} placeholder="Número de cuenta"
+                    err={err.numero_cuenta}
+                    onChange={val => onInfoBancariaPagosChange(idx, 'numero_cuenta', val)}
+                    inputMode="numeric"
+                    onKeyDown={onlyNumericKeyDown} onPaste={onlyNumericPaste}
+                  />
+                  <CeldaEliminar
+                    mostrar={infoBancariaPagos.length > 1}
+                    onClick={() => onEliminarInfoBancariaPagos(idx)}
+                    title="Eliminar cuenta"
+                  />
                 </tr>
               );
             })}
@@ -284,7 +270,7 @@ function InfoBancariaPagos({ infoBancariaPagos, onInfoBancariaPagosChange, onAdd
       <button type="button" className="btn btn-sm btn-outline" onClick={onAddInfoBancariaPagos}>
         + Agregar cuenta
       </button>
-    </>
+    </BloqueCorreccion>
   );
 }
 

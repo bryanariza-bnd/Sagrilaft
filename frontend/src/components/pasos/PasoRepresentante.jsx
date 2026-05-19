@@ -12,9 +12,6 @@ const TIPOS_DOC = [
   { value: 'PAS', label: 'Pasaporte'             },
 ];
 
-// Fecha máxima permitida para date pickers: hoy (no fechas futuras)
-const today = new Date().toISOString().split('T')[0];
-
 /**
  * Paso 3 — Identidad del Sujeto Obligado / Representante Legal.
  *
@@ -27,6 +24,12 @@ const today = new Date().toISOString().split('T')[0];
  */
 export default function PasoRepresentante({ formData, onChange, onOpenHelp, errors, alertasNombreRepresentante, alertasNumeroDocRepresentante }) {
   const esNatural = formData.tipo_persona === 'natural';
+
+  // Fecha máxima para date pickers: calculada por instancia, no por importación
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  // Elimina la repetición de value/onChange/onOpenHelp/error en cada FormField
+  const fieldProps = (name) => ({ name, value: formData[name], onChange, onOpenHelp, error: errors[name] });
 
   // ── Bloque 1: Ciudad donde ejerce funciones ──────────────────────────────────
   const {
@@ -62,105 +65,54 @@ export default function PasoRepresentante({ formData, onChange, onOpenHelp, erro
       <p className="section-subtitle">
         {esNatural
           ? 'Información de la persona natural'
-          : 'Datos del representante legal de la empresa'}
+          : 'Datos del representante legal de la empresa o Persona Natural'}
       </p>
 
       {/* ── Nombre e identificación ─────────────────────────────────────────── */}
       <div className="form-row single">
-        <FormField
-          label="Nombres y Apellidos" name="nombre_representante" required
-          value={formData.nombre_representante} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.nombre_representante}
-        />
+        <FormField label="Nombres y Apellidos" required {...fieldProps('nombre_representante')} />
       </div>
 
       <AlertasInconsistencia alertas={alertasNombreRepresentante} tipoCampo="nombre del representante sin resolver" nombreCampo="Nombres y Apellidos" />
 
       <div className="form-row">
-        <FormField
-          label="Tipo de Documento" name="tipo_doc_representante" type="select" required
-          value={formData.tipo_doc_representante} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.tipo_doc_representante}
-          options={TIPOS_DOC}
-        />
-        <FormField
-          label="No. de Identificación" name="numero_doc_representante" required
-          value={formData.numero_doc_representante} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.numero_doc_representante}
-        />
+        <FormField label="Tipo de Documento" type="select" required options={TIPOS_DOC} {...fieldProps('tipo_doc_representante')} />
+        <FormField label="No. de Identificación" required {...fieldProps('numero_doc_representante')} />
       </div>
 
       <AlertasInconsistencia alertas={alertasNumeroDocRepresentante} tipoCampo="No. de Identificación del representante sin resolver" nombreCampo="No. de Identificación" />
 
       {/* ── Fecha de expedición ─────────────────────────────────────────────── */}
       <div className="form-row">
-        <FormField
-          label="Fecha de Expedición" name="fecha_expedicion" type="date" required
-          value={formData.fecha_expedicion} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.fecha_expedicion}
-          max={today}
-        />
+        <FormField label="Fecha de Expedición" type="date" required max={today} {...fieldProps('fecha_expedicion')} />
       </div>
 
       {/* ── Ciudad de Expedición ─────────────────────────────────────────────── */}
       <div className="form-row">
-        <FormField
-          label="Ciudad de Expedición" name="ciudad_expedicion" required
-          value={formData.ciudad_expedicion} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.ciudad_expedicion}
-        />
+        <FormField label="Ciudad de Expedición" required {...fieldProps('ciudad_expedicion')} />
       </div>
 
       {/* ── Nacionalidad y fecha de nacimiento ──────────────────────────────── */}
       <div className="form-row">
-        <NacionalidadSelect
-          required
-          value={formData.nacionalidad} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.nacionalidad}
-        />
-        <FormField
-          label="Fecha de Nacimiento" name="fecha_nacimiento" type="date" required
-          value={formData.fecha_nacimiento} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.fecha_nacimiento}
-          max={today}
-        />
+        <NacionalidadSelect required value={formData.nacionalidad} onChange={onChange} onOpenHelp={onOpenHelp} error={errors.nacionalidad} />
+        <FormField label="Fecha de Nacimiento" type="date" required max={today} {...fieldProps('fecha_nacimiento')} />
       </div>
 
       {/* ── Ciudad de Nacimiento ─────────────────────────────────────────────── */}
       <div className="form-row">
-        <FormField
-          label="Ciudad de Nacimiento" name="ciudad_nacimiento" required
-          value={formData.ciudad_nacimiento} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.ciudad_nacimiento}
-        />
+        <FormField label="Ciudad de Nacimiento" required {...fieldProps('ciudad_nacimiento')} />
       </div>
 
       {/* ── Profesión y contacto ────────────────────────────────────────────── */}
       <div className="form-row">
-        <FormField
-          label="Profesión" name="profesion" required
-          value={formData.profesion} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.profesion}
-        />
-        <FormField
-          label="Correo Electrónico" name="correo_representante" type="email" required
-          value={formData.correo_representante} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.correo_representante}
-        />
-        <FormField
-          label="Teléfono" name="telefono_representante" type="tel" required
-          value={formData.telefono_representante} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.telefono_representante}
-        />
+        <FormField label="Profesión" required {...fieldProps('profesion')} />
+        <FormField label="Correo Electrónico" type="email" required {...fieldProps('correo_representante')} />
+        <FormField label="Teléfono" type="tel" required {...fieldProps('telefono_representante')} />
       </div>
 
       {/* ── Dirección y ciudad donde ejerce funciones ───────────────────────── */}
       <div className="form-row single">
-        <FormField
-          label="Dirección donde ejerce funciones" name="direccion_funciones" required
-          value={formData.direccion_funciones} onChange={onChange}
-          onOpenHelp={onOpenHelp} error={errors.direccion_funciones}
-        />
+        <FormField label="Dirección donde ejerce funciones" required {...fieldProps('direccion_funciones')} />
       </div>
 
       {/* ── Lugar donde ejerce funciones (País → Departamento → Ciudad) ─────── */}
@@ -194,11 +146,7 @@ export default function PasoRepresentante({ formData, onChange, onOpenHelp, erro
       {esNatural && (
         <>
           <div className="form-row single">
-            <FormField
-              label="Dirección de Residencia (SOLO PARA PERSONA NATURAL)" name="direccion_residencia" required
-              value={formData.direccion_residencia} onChange={onChange} 
-              onOpenHelp={onOpenHelp} error={errors.direccion_residencia}
-            />
+            <FormField label="Dirección de Residencia (SOLO PARA PERSONA NATURAL)" required {...fieldProps('direccion_residencia')} />
           </div>
 
           <div className="form-row">
